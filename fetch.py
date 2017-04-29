@@ -250,7 +250,7 @@ def generate_project(result, folder, tests):
     }
 
 
-def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, projectname):
+def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, projectname, outputfile):
     result = []
     sources_with_errors = []
     progress_counter = len(sources) * len(tests)
@@ -268,17 +268,16 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, ou
         print("average time is", np.mean(timings))
         result.append({'name': source, 'tests':{'time': timings, 'tl': tl, 'rt': rt}})
 
-        if idx % 100 == 0:
-            print("temp store")
-            temp = open('./json.temp', 'w')
-            json.dump(generate_project(result, projectname, tests), temp, sort_keys=True, indent=4)
-            temp.close()
+        if idx % 50 == 0:
+            print("temp storing")
+            json.dump(generate_project(result, projectname, tests), outputfile, sort_keys=True, indent=4)
+            outputfile.flush()
 
     print("Errors:\n{}".format(sources_with_errors))
     return result
 
 
-def check_folder(folder, gui_checker, gui_checker_test, gui_error):
+def check_folder(folder, gui_checker, gui_checker_test, gui_error, outputfile):
     print("Taking test from folder {}".format(folder))
     sources = get_sources(os.path.join(folder, 'sources'))
     outputfolder = os.path.join(folder, "executables")
@@ -288,7 +287,7 @@ def check_folder(folder, gui_checker, gui_checker_test, gui_error):
         os.makedirs(outputfolder)
 
     sources = filter_sources(sources)
-    result = process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, folder)
+    result = process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, folder, outputfile)
 
     return generate_project(result, folder, tests)
 

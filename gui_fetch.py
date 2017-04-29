@@ -105,7 +105,6 @@ class FetchPage(tk.Frame):
                                             self.main.print_log,
                                             )
 
-
         messagebox.showinfo(title='Saved', message='Done!')
 
         json.dump(self.main.data, self.savefile, sort_keys=True, indent=4)
