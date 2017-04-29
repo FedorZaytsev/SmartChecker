@@ -1,0 +1,146 @@
+import tkinter as tk
+import tkinter.font as font
+import tkinter.scrolledtext as scrolledtext
+import tkinter.filedialog as filedialog
+import tkinter.messagebox as messagebox
+from tkinter import ttk
+
+import gui_clusterize
+import gui_fetch
+import sys
+
+window = None
+
+class MyStream(object):
+    def __init__(self, target):
+        self.target = target
+
+    def write(self, s):
+        if window is not None and False:
+            window.print_log(s)
+        self.target.write(s)
+#sys.stdout = MyStream(sys.stdout)
+
+
+class Window:
+    def __init__(self):
+        global window
+        window = self
+        self.log = None
+        self.data = None
+        self.root = None
+        self.pages = {
+            'clustering': None,
+            'fetch': None
+        }
+        self.project_name = None
+        self.filemenu = None
+        self.projectmenu = None
+        self.init_controls()
+
+    def init_controls(self):
+        self.root = tk.Tk()
+        self.root.geometry("800x500")
+        self.root.title("Smart checker")
+        self.root.resizable(True, True)
+
+        menu = tk.Menu(self.root)
+        self.filemenu = tk.Menu(menu)
+        self.filemenu.add_command(label='New project', command=self.new_project)
+        self.filemenu.add_command(label='Open project', command=self.open_project)
+        self.filemenu.add_command(label='Save', command=lambda: self.save_project(None), state=tk.DISABLED)
+        self.filemenu.add_command(label='Save as', command=self.save_project_as, state=tk.DISABLED)
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label="Exit", command=self.root.quit)
+
+        self.projectmenu = tk.Menu(menu)
+        self.projectmenu.add_command(label='Upgrade', command=self.upgrade, state=tk.DISABLED)
+
+        menu.add_cascade(label="File", menu=self.filemenu)
+        menu.add_cascade(label="Project", menu=self.projectmenu)
+        self.root.config(menu=menu)
+
+        logframe = tk.Frame(self.root, borderwidth=1, relief="sunken")
+        logframe.pack(side='bottom', pady=(20, 20))
+
+        self.log = scrolledtext.ScrolledText(logframe, height=5)
+        self.log.pack(fill='both')
+        self.log.configure(state='disabled')
+        self.log.bind("<1>", lambda event: self.log.focus_set())
+
+        self.print_log("Log:")
+
+        self.root.mainloop()
+
+    def print_log(self, text):
+        self.log.configure(state='normal')
+        self.log.insert('end', text + '\n')
+        self.log.configure(state='disabled')
+
+    def new_project(self):
+        self.clear_pages()
+
+        def set_commands():
+            self.filemenu.entryconfigure(0, state=tk.DISABLED)
+            self.filemenu.entryconfigure(1, state=tk.DISABLED)
+            self.filemenu.entryconfigure(2, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(3, state=tk.ACTIVE)
+            self.projectmenu.entryconfigure(0, state=tk.DISABLED)
+
+        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
+        self.pages['fetch'].pack(expand=1)
+
+    @staticmethod
+    def show_loading(title):
+        loading = tk.Toplevel()
+        loading.title(title)
+
+        label = tk.Label(loading, font=font.Font(family='Helvetica', size=36), text='Loading')
+        label.pack(side='top', padx=20, pady=(40, 10))
+
+        bar = ttk.Progressbar(loading, mode='indeterminate')
+        bar.start()
+        bar.pack(side='bottom', padx=20, pady=(10, 40))
+        return loading
+
+    def open_project(self):
+        self.clear_pages()
+
+        def set_commands():
+            self.filemenu.entryconfigure(0, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(1, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(2, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(3, state=tk.ACTIVE)
+            self.projectmenu.entryconfigure(0, state=tk.ACTIVE)
+
+        self.pages['clustering'] = gui_clusterize.ClusterizePage(self, self.root, set_commands)
+        self.pages['clustering'].pack(expand=1)
+
+    def save_project_as(self):
+        file = filedialog.asksaveasfile(mode='w')
+
+        if file is None:
+            return
+
+        self.save_project(file)
+
+    def save_project(self, file):
+        if file is None:
+            if self.pages['clustering'] is not None:
+                file = open(self.pages['clustering'])
+
+        self.data.save(file)
+        self.print_log('Saved')
+
+    def upgrade(self):
+        pass
+
+    def clear_pages(self):
+        for name, page in self.pages.items():
+            if page is not None:
+                page.destroy()
+                self.pages[name] = None
+
+
+def main():
+    window = Window()

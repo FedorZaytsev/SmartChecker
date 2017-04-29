@@ -1,0 +1,167 @@
+import os
+import time
+import subprocess
+import tkinter as tk
+import tkinter.font as font
+from settings import *
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib import figure
+
+
+class ClusterWindow(tk.Toplevel):
+    def __init__(self, data, idx, main):
+        super().__init__()
+
+        self.idx = idx
+        self.main = main
+        self.project = data
+        self.data = data.get_cluster(idx)
+        self.cluster_info = data.get_cluster_info(idx)
+        self.solutions = None
+        self.plot_frame = None
+        self.space_frame = None
+        self.solutions = None
+        self.doubleClickTime = time.clock()
+        self.init_controls()
+        self.title(self.cluster_info['name'])
+
+        self.protocol("WM_DELETE_WINDOW", self.on_destroy)
+
+    def on_destroy(self):
+        self.main.on_solution_close(self.idx)
+        self.destroy()
+
+    def init_controls(self):
+        def updateName(val):
+            self.title(val)
+            self.main.clusters.delete(self.idx)
+            self.main.clusters.insert(self.idx, "{} ({})".format(val, len(self.data)))
+            self.project.clusters[self.idx]['name'] = val
+            return True
+
+        def updateDescription(val):
+            self.project.clusters[self.idx]['description'] = val
+            return True
+
+
+        fr1 = tk.Frame(self)
+        fr1.pack(side=tk.LEFT)
+        label1 = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Name:')
+        label1.pack()
+
+        name_input = tk.Entry(fr1, exportselection=0, validate='key',
+                                     validatecommand=(fr1.register(updateName), '%P'))
+        name_input.insert(tk.END, self.cluster_info['name'])
+        name_input.pack()
+
+        label2 = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Description:')
+        label2.pack()
+
+        desc_input = tk.Entry(fr1, exportselection=0, validate='key',
+                                     validatecommand=(fr1.register(updateDescription), '%P'))
+        desc_input.insert(tk.END, self.cluster_info['description'])
+        desc_input.pack()
+
+        self.solutions = tk.Listbox(fr1)
+        self.solutions.pack(expand=1)
+
+        self.plot_frame = tk.Frame(self)
+        self.plot_frame.pack(side=tk.RIGHT)
+
+        self.show_plot(self.plot_frame, 0)
+        self.update()
+        self.minsize(self.winfo_width(), self.winfo_height())
+
+        def on_copy():
+            idx = self.solutions.curselection()[0]
+            text = self.data[idx]['name']['file']
+            _, text = os.path.split(text)
+            #text = self.solutions.get(idx)
+            self.clipboard_clear()
+            self.clipboard_append(text)
+
+        popup = tk.Menu(self.solutions, tearoff=0)
+        popup.add_command(label="Copy", command=lambda: on_copy())
+
+        for solution in self.data:
+            meta = solution['name']['meta']
+            self.solutions.insert(tk.END, '{} {}'.format(meta['username'], meta['date']))
+
+        self.solutions.selection_set(0)
+
+        def on_right_click(event):
+            widget = event.widget
+            index = widget.nearest(event.y)
+            _, yoffset, _, height = widget.bbox(index)
+            if event.y > height + yoffset + 5:  # XXX 5 is a niceness factor :)
+                # Outside of widget.
+                return
+            item = widget.get(index)
+            popup.post(event.x_root, event.y_root)
+
+        self.solutions.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
+        self.solutions.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
+        self.solutions.bind("<Button-2>", lambda event: on_right_click(event))
+        self.bind('<Key>', lambda e: self.on_keypressed(e))
+
+    def on_keypressed(self, e):
+        if e.keysym == 'Up':
+            cur = self.solutions.curselection()
+            if len(cur) == 1 and cur[0] > 0:
+                self.solutions.selection_clear(cur[0])
+                self.solutions.selection_set(cur[0] - 1)
+                self.solutions.see(cur[0] - 1)
+                self.on_solution_selected()
+        elif e.keysym == 'Down':
+            cur = self.solutions.curselection()
+            if len(cur) == 1 and cur[0] < self.solutions.size()-1:
+                self.solutions.selection_clear(cur[0])
+                self.solutions.selection_set(cur[0] + 1)
+                self.solutions.see(cur[0] + 1)
+                self.on_solution_selected()
+
+    def on_solution_selected_fake(self):
+        self.after(200, lambda: self.is_solo_click())
+
+    def is_solo_click(self):
+        if time.clock() - self.doubleClickTime > 0.005:
+            self.on_solution_selected()
+
+    def on_solution_selected(self):
+        if len(self.solutions.curselection()) == 0:
+            return
+
+        idx = self.solutions.curselection()[0]
+        self.show_plot(self.plot_frame, idx)
+
+    def show_plot(self, frame, idx):
+        if self.space_frame is not None:
+            self.space_frame.destroy()
+            self.space_frame = None
+
+        self.space_frame = tk.Frame(frame)
+        self.space_frame.pack()
+        f = figure.Figure(figsize=(6, 4), dpi=100)
+        canvas = FigureCanvasTkAgg(f, master=self.space_frame)
+        a = f.add_subplot(111)
+        tests = self.data[idx]['tests']
+        a.scatter([i+1 for i in range(len(tests['time']))], [e for e in tests['time']], c='red', marker='o', s=16)
+        a.set_title('Time')
+        a.set_xlabel('test id')
+        a.set_ylabel('time')
+        canvas.show()
+        canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        canvas._tkcanvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+
+    def on_solution_clicked(self):
+        self.doubleClickTime = time.clock()
+        if len(self.solutions.curselection()) == 0:
+            return
+
+        idx = self.solutions.curselection()[0]
+        self.solutions.activate(idx)
+        subprocess.call([config['view']['editor_cmd'], self.data[idx]['name']['file']])
+
+
