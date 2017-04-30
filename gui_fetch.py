@@ -98,7 +98,7 @@ class FetchPage(tk.Frame):
             time = seconds_passed / (self.current_user_idx*size + idx) * overall_count
 
             self.estimated_time_box.config(
-                text="Estimated time: ~ {}".format(prett_timedelta(datetime.timedelta(seconds=time))))
+                text="Estimated time: ~ {}".format(prett_timedelta(datetime.timedelta(seconds=time - seconds_passed))))
 
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
