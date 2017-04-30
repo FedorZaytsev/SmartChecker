@@ -2,6 +2,7 @@ import os
 import datetime
 import json
 import fetch
+import project
 import threading
 import tkinter as tk
 from tkinter import ttk
@@ -101,12 +102,10 @@ class FetchPage(tk.Frame):
 
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
-        self.main.data = fetch.check_folder(self.directory, self.step, self.step_test,
-                                            self.main.print_log,
-                                            )
+        self.main.data = project.Project(output=self.savefile)
+        fetch.check_folder(self.directory, self.step, self.step_test, self.main.print_log, self.main.data)
 
+        self.main.data.save()
         messagebox.showinfo(title='Saved', message='Done!')
-
-        json.dump(self.main.data, self.savefile, sort_keys=True, indent=4)
 
         print("test_task end")

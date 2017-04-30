@@ -8,13 +8,15 @@ import queue
 from settings import *
 import tempfile
 import hashlib
+import project
 
 
 def list_files(dir):
     r = []
     for root, dirs, files in os.walk(dir):
         for name in files:
-            r.append(os.path.join(root, name))
+            r.append(os.path.join(dir, name))
+
     return r
 
 
@@ -23,14 +25,6 @@ def parse_filename(filename):
     if len(data) != 5:
         return None
     return {'username':data[0], 'date':data[1], 'status': data[2], 'plagiat': data[3], 'ext':data[4]}
-
-
-def md5(fname):
-    hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
 
 
 def get_sources(foldername):
@@ -53,7 +47,9 @@ def filter_sources(sources):
 
 
 def get_tests(testsfolder):
-    return list(filter(lambda name: name[-2:] != '.a', list_files(testsfolder)))
+    lst = list(filter(lambda name: name[-2:] != '.a', list_files(testsfolder)))
+
+    return sorted(lst, key=lambda x: int(os.path.basename(x)))
 
 
 def kill_process(pid):
@@ -71,29 +67,20 @@ def kill_process(pid):
 #mytemp = open('./temp.temp', 'r+', errors='ignore')
 
 def call_process(command, input=None, timeout=None):
-    #with tempfile.NamedTemporaryFile(mode='r+') as output:
-    #output = mytemp
-    #output.seek(0)
-    #output.truncate()
-    #print('calling', command)
-    #print('temp file is', output.name)
     proc = subprocess.Popen(command,
                             stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
                             universal_newlines=True, errors='ignore')
     #                        stderr=output, stdout=output, stdin=subprocess.PIPE, universal_newlines=True)
-    #print("popen")
+
     output = ''
     errors = ''
     try:
         output, errors = proc.communicate(timeout=timeout, input=input)
-        #print("communicated",outp, errors)
     except subprocess.TimeoutExpired as error:
         kill_process(proc.pid)
-    #output.seek(0)
-    #data = output.read()
-    #print(proc.args, proc.returncode)
+        raise error
+
     data = output
-    #print('data', data)
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(output=data, cmd=command, returncode=proc.returncode)
 
@@ -103,22 +90,11 @@ def call_process(command, input=None, timeout=None):
 def compile_source(file, output):
     opts = config['compiler']
 
-    #command = "{} {} -o {} \"{}\"".format(opts['name'], opts['options'],
-    #                                      os.path.join(output, file['meta']['username']), file['file'])
-
-    #print('compiling', command)
-
     params = list(filter(len, opts['options'].split(' ')))
     output_path = os.path.join(output, file['meta']['username'])
     command = [opts['name'], *params, '-o', output_path, file['file']]
     print('compiling', command)
-    #proc = subprocess.Popen(
-    #    [opts['name'], *params, '-o', output_path, file['file']],
-        #"{} {} -o {} \"{}\"".format(
-        #    opts['name'], opts['options'],
-        #    os.path.join(output, file['meta']['username']), file['file']
-        #),
-    #    stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+
     try:
         output = call_process(command, timeout=30)
     except subprocess.CalledProcessError as error:
@@ -158,138 +134,91 @@ def parse_time(text):
     return result['user']
 
 
-def run_test(program, test, programname):
-    #print('run_test')
-    #proc = subprocess.Popen("time {} < {} > /dev/null".format(program, test), shell=True,
-    #                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    #print('started')
-    #command = "time {} < {} > /dev/null".format(program, test)
-    command = ['time', '-p', program]
+def run_test(path, program_name, test):
+    filepath = os.path.join(path, program_name)
 
-    test_data = open(test, 'r').read()
+    command = ['time', '-p', filepath]
+    test_data = open(test['name'], 'r').read()
 
-
-    try:
-        output = call_process(command, timeout=config['tests'].getfloat('timeout'), input=test_data)
-        return parse_time(output)
-        #output = proc.communicate(timeout=config['tests'].getfloat('timeout'))[0]
-        #print('communicated')
-        #if proc.returncode != 0:
-        #    print("Error while running program with name {} on test {}".format(program, test))
-        #    print("Reason:\n{}".format(output))
-        #    raise subprocess.CalledProcessError(proc.returncode, proc.args, output=output, stderr='')
-        #return parse_time(output)
-
-    except subprocess.TimeoutExpired as error:
-        print("Timeout expired for source {} on test {}".format(program, test))
-        #try:
-        #    pass
-            #kill_process(program)
-            #call_process('pkill \"{}\"'.format(program), timeout=10)
-        #except subprocess.TimeoutExpired:
-        #    pass
-        raise error
-
-    except subprocess.CalledProcessError as error:
-        print("Error while running program with name {} on test {}".format(program, test))
-        #print("Reason:\n{}".format(error.output))
-        raise error
+    output = call_process(command, timeout=config['tests'].getfloat('timeout'), input=test_data)
+    return parse_time(output)
 
 
-def run_tests(file, tests, outputfolder, gui_checker_test, gui_error, progress_counter):
-    print("running tests for", file['meta']['username'])
+def run_tests(solution, tests, outputfolder, gui_checker_test, gui_error):
+    print("running tests for", solution.meta['username'])
 
-    results = []
-    timeout = []
-    runtime = []
+    timeout = False
+    runtime = False
     for idx_test, test in enumerate(tests):
-
         average = []
-        gui_checker_test(idx_test, len(tests), progress_counter)
+        gui_checker_test(idx_test, len(tests))
         for i in range(int(config['tests']['count'])):
 
             try:
-                average.append(run_test(os.path.join(outputfolder,file['meta']['username']), test, file['meta']['username']))
+                average.append(run_test(outputfolder, solution.meta['username'], test))
             except subprocess.TimeoutExpired:
-                if len(timeout) == 0:
-                    gui_error("Timeout for {}".format(os.path.basename(file['file'])))
-                timeout.append(idx_test)
+                print("Timeout expired for source {} on test {}".format(solution.filepath, test))
+                if not timeout:
+                    gui_error("Timeout for {}".format(solution.meta['username']))
+                timeout = True
+
                 if config['tests'].getboolean('force_run_after_timeout'):
-                    average = [float(config['tests']['timeout'])*1000 for i in range(int(config['tests']['count']))]
+                    solution.set_test(test, timeout=True)
                 else:
                     for j in range(idx_test, len(tests)):
-                        results.append(float(config['tests']['timeout'])*1000)
+                        solution.set_test(tests[j], timeout=True)
+                    return
 
-                    return results, timeout, runtime
                 break
-            except subprocess.CalledProcessError:
-                if len(runtime) == 0:
-                    gui_error("Runtime error for {}".format(os.path.basename(file['file'])))
-                runtime.append(idx_test)
+            except subprocess.CalledProcessError as error:
+                print("Error while running program with name {} on test {}. Code {}"
+                      .format(solution.filepath, test['name'], error.returncode))
+                if not runtime:
+                    gui_error("Runtime error for {}".format(solution.meta['username']))
+                runtime = True
+
                 if config['tests'].getboolean('force_run_after_timeout'):
-                    average = [float(config['tests']['timeout'])*1000 for i in range(int(config['tests']['count']))]
+                    solution.set_test(test, runtime=True)
                 else:
                     for j in range(idx_test, len(tests)):
-                        results.append(float(config['tests']['timeout'])*1000)
-
-                    return results, timeout, runtime
+                        solution.set_test(tests[j], runtime=True)
+                    return
                 break
 
-
-        results.append(np.mean(average))
-        #results.append({key: np.mean([el[key] for el in average]) for key in average[0].keys()})
-
-    return results, timeout, runtime
+        if len(average) != 0:
+            solution.set_test(test, time=np.mean(average))
 
 
-def generate_project(result, folder, tests):
-    return {
-        'task_name': os.path.basename(folder),
-        'count_tests': len(tests),
-        'data': result,
-    }
+def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, folder, proj):
+    outputfolder = os.path.join(folder, "executables")
+    if not os.path.exists(outputfolder):
+        os.makedirs(outputfolder)
 
-
-def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, projectname, outputfile):
-    result = []
-    sources_with_errors = []
-    progress_counter = len(sources) * len(tests)
     for idx, source in enumerate(sources):
         print("Running {} of {}".format(idx, len(sources)))
         gui_checker(idx, len(sources), source)
+
+        solution = proj.get_solution(source)
         try:
             compile_source(source, outputfolder)
         except subprocess.CalledProcessError:
             gui_error("Cannot compile file {}".format(os.path.basename(source['file'])))
-            sources_with_errors.append(source)
             continue
 
-        timings, tl, rt = run_tests(source, tests, outputfolder, gui_checker_test, gui_error, progress_counter)
-        print("average time is", np.mean(timings))
-        result.append({'name': source, 'tests':{'time': timings, 'tl': tl, 'rt': rt}})
-
-        if idx % 50 == 0:
-            print("temp storing")
-            json.dump(generate_project(result, projectname, tests), outputfile, sort_keys=True, indent=4)
-            outputfile.flush()
-
-    print("Errors:\n{}".format(sources_with_errors))
-    return result
+        run_tests(solution, tests, outputfolder, gui_checker_test, gui_error)
 
 
-def check_folder(folder, gui_checker, gui_checker_test, gui_error, outputfile):
+def check_folder(folder, gui_checker, gui_checker_test, gui_error, proj):
     print("Taking test from folder {}".format(folder))
     sources = get_sources(os.path.join(folder, 'sources'))
-    outputfolder = os.path.join(folder, "executables")
     tests = get_tests(os.path.join(folder, 'tests'))
-
-    if not os.path.exists(outputfolder):
-        os.makedirs(outputfolder)
+    tests = proj.update_tests(tests)
 
     sources = filter_sources(sources)
-    result = process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, folder, outputfile)
+    progress_counter = len(sources) * len(tests)
+    gui_checker_test_l = lambda idx, count: gui_checker_test(idx, count, progress_counter)
+    process_sources(sources, tests, gui_checker, gui_checker_test_l, gui_error, folder, proj)
 
-    return generate_project(result, folder, tests)
 
 
 def get_new_sources(project, sources):

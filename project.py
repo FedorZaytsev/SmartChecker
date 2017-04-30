@@ -3,20 +3,36 @@ import json
 import clustering
 import numpy as np
 import functools
+import hashlib
+import solution
 
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 class Project:
     def __init__(self, **kwargs):
-        if 'file' in kwargs:
-            data = json.load(kwargs['file'])
-            self.count_tests = data['count_tests']
-            self.clusters = data['clusters']
-            self.data = data['data']
-            self.tests = data['tests']
-            self.dimentions = self.calculate_dimentions()
-            self.skip_count = 30
-            print('dimentions', self.dimentions)
+        self.tests = {}
+        self.solutions = {}
+        self.skip_count = 0
+        self.clusters = {}
 
+        #if 'file' in kwargs:
+        #    data = json.load(kwargs['file'])
+        #    self.count_tests = data['count_tests']
+        #    self.clusters = data['clusters']
+        #    self.data = data['solutions']
+        #    self.solutions = dict((e['name']['filename'], e) for e in data['solutions'])
+        #    self.tests = data['tests']
+        #    self.dimentions = self.calculate_dimentions()
+        #    print('dimentions', self.dimentions)
+
+        if 'output' in kwargs:
+            self.output = kwargs['output']
 
     def drop_rt(self):
         self.data = list(filter(lambda el: len(el['tests']['rt']) == 0, self.data))
@@ -62,7 +78,10 @@ class Project:
 
         return labels
 
+    def get_test_id(self, testname):
+        assert testname in self.tests, 'Cannot find test for file {}'.format(testname)
 
+        return self.tests[testname]['id']
 
     def clusterize(self, count):
         labels = clustering.clusterize(self, kmax=count)
@@ -84,8 +103,6 @@ class Project:
 
         return labels
 
-
-
     def get_cluster(self, idx):
         return list(map(lambda x: x[0], filter(lambda x: x[1] == idx, zip(self.data, self.get_labels()))))
 
@@ -101,15 +118,50 @@ class Project:
     def get_times(self):
         return list(map(lambda x: x['tests']['time'][self.skip_count:], self.data))
 
-    #def get_cluster_count(self):
-    #    return np.unique(self.data.get_labels())
+    def update_tests(self, tests):
+        new_tests = []
+        for testname in tests:
+            file_md5 = md5(testname)
 
-    def save(self, output):
+            if testname not in self.tests:
+                test = self.new_test(testname, len(list(self.tests.keys())), file_md5=file_md5)
+                self.tests[testname] = test
+                new_tests.append(test)
+            else:
+                test = self.tests[testname]
+                if test['md5'] != file_md5:
+                    new_tests.append(test)
+                    test['md5'] = file_md5
+                    for solution in self.solutions:
+                        solution.tests['time'][test['id']] = None
+
+        return new_tests
+
+    def new_test(self, testname, id, file_md5=None):
+        if file_md5 is None:
+            file_md5 = md5(testname)
+
+        return {
+            'name': testname,
+            'md5': file_md5,
+            'id': id,
+        }
+
+    def get_solution(self, source):
+        if source['file'] not in self.solutions:
+            s = solution.Solution(self, source['file'])
+            self.solutions[source['file']] = s
+
+        return self.solutions[source['file']]
+
+    def save(self):
+        assert self.output is not None
         json.dump({
-            'count_tests': self.count_tests,
-            'data': self.data,
-            'clusters': self.clusters,
-        }, output, sort_keys=True, indent=4)
+            'tests': list(self.tests.values()),
+            'solutions': [s.dump() for s in self.solutions.values()],
+            'clusters': list(self.clusters.values()),
+        }, self.output, sort_keys=True, indent=4)
+        self.output.flush()
 
 
 

@@ -24,6 +24,13 @@ class ClusterWindow(tk.Toplevel):
         self.space_frame = None
         self.solutions = None
         self.doubleClickTime = time.clock()
+
+        self.y_max = 0
+        for solution in self.data:
+            self.y_max = max(self.y_max, max(solution['tests']['time']))
+
+        print('data[0]', self.data[0]['tests'], len(self.data[0]['tests']['time']))
+
         self.init_controls()
         self.title(self.cluster_info['name'])
 
@@ -146,6 +153,7 @@ class ClusterWindow(tk.Toplevel):
         f = figure.Figure(figsize=(6, 4), dpi=100)
         canvas = FigureCanvasTkAgg(f, master=self.space_frame)
         a = f.add_subplot(111)
+        a.set_ylim([-1, self.y_max+1])
         tests = self.data[idx]['tests']
         a.scatter([i+1 for i in range(len(tests['time']))], [e for e in tests['time']], c='red', marker='o', s=16)
         a.set_title('Time')

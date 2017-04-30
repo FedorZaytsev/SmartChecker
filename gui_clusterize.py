@@ -40,7 +40,7 @@ class ClusterizePage(tk.Frame):
 
         def load_stat_thread():
             with open(self.filename, 'r') as file:
-                self.main.data = project.Project(file)
+                self.main.data = project.Project(file=file)
             self.main.data.drop_rt()
             self.main.data.drop_tl()
             self.main.data.drop_test_failed()
