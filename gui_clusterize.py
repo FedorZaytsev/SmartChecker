@@ -42,8 +42,8 @@ class ClusterizePage(tk.Frame):
             with open(self.filename, 'r') as file:
                 self.main.data = project.Project(file=file)
             self.main.data.drop_rt()
-            self.main.data.drop_tl()
-            self.main.data.drop_test_failed()
+            #self.main.data.drop_tl()
+            #self.main.data.drop_test_failed()
             print("Loaded {} elements".format(self.main.data.size()))
             self.draw_data()
             self.redraw()
@@ -71,13 +71,14 @@ class ClusterizePage(tk.Frame):
 
         # Times
         #print('mask', self.mask)
-        dimensions = self.main.data.dimentions
+        dimensions = self.main.data.get_dimentions()
         #print('labels', np.unique(self.main.data.get_labels()))
         #print('mask', self.mask)
+        print('clusters', np.unique(self.main.data.get_labels()))
         for idx, label in enumerate(np.unique(self.main.data.get_labels())):
 
             time = self.main.data.get_times_by_test(idx)
-            #print("times", time)
+            print("times", time)
             assert idx < len(colors)
             assert idx < len(self.mask)
             off = self.main.data.skip_count
@@ -123,7 +124,7 @@ class ClusterizePage(tk.Frame):
         self.clusteringframe = tk.Frame(self)
         self.clusteringframe.pack(expand=1, fill=tk.BOTH)
 
-        dimentions = self.main.data.dimentions
+        dimentions = self.main.data.get_dimentions()
         print("dimentions {}...".format(dimentions[:3]))
 
         def isNumber(val):

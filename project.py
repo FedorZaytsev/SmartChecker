@@ -20,31 +20,29 @@ class Project:
         self.solutions = {}
         self.skip_count = 0
         self.clusters = {}
+        self.dimentions = None
 
-        #if 'file' in kwargs:
-        #    data = json.load(kwargs['file'])
-        #    self.count_tests = data['count_tests']
-        #    self.clusters = data['clusters']
-        #    self.data = data['solutions']
-        #    self.solutions = dict((e['name']['filename'], e) for e in data['solutions'])
-        #    self.tests = data['tests']
-        #    self.dimentions = self.calculate_dimentions()
-        #    print('dimentions', self.dimentions)
+        if 'file' in kwargs:
+            data = json.load(kwargs['file'])
+            self.clusters = dict((e['id'], e) for e in data['clusters'])
+            self.solutions = dict((e['name']['file'], solution.Solution(self, obj=e)) for e in data['solutions'])
+            self.tests = dict((e['name'], e) for e in data['tests'])
 
         if 'output' in kwargs:
             self.output = kwargs['output']
 
+
     def drop_rt(self):
-        self.data = list(filter(lambda el: len(el['tests']['rt']) == 0, self.data))
+        self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.rt) == 0)
 
     def drop_tl(self):
-        self.data = list(filter(lambda el: len(el['tests']['tl']) == 0, self.data))
+        self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.tl) == 0)
 
     def drop_test_failed(self):
-        self.data = list(filter(lambda el: el['name']['meta']['status'] == 'PASSED_TESTS', self.data))
+        self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.meta['status']) == 'PASSED_TESTS')
 
     def size(self):
-        return len(self.data)
+        return len(list(self.solutions.values()))
 
     def cluster_count(self):
         if len(self.clusters) == 0:
@@ -60,14 +58,15 @@ class Project:
         data = sorted(
             [
                 {'i': i,
-                 'av': default(np.median(list(filter(lambda e: e != 1.0, [el['tests']['time'][i] for el in
-                                                                          self.data]))))
-                 } for i in range(self.count_tests)
+                 'av': default(np.median(
+                     list(filter(lambda e: e != 1.0, [s.times[i] for s in self.solutions.values()]))))
+                 } for i in range(self.get_count_tests())
             ],
             key=lambda x: x['av'], reverse=True
         )
-        print('calculate_dimentions', data)
+
         return data
+
 
     def sort_labels(self, labels):
         uniq, count = np.unique(labels, return_counts=True)
@@ -77,6 +76,13 @@ class Project:
         print('labels', labels)
 
         return labels
+
+    def get_dimentions(self):
+        if self.dimentions is None:
+            self.dimentions = self.calculate_dimentions()
+
+        print('get_dimentions', self.dimentions)
+        return self.dimentions
 
     def get_test_id(self, testname):
         assert testname in self.tests, 'Cannot find test for file {}'.format(testname)
@@ -96,27 +102,33 @@ class Project:
             self.clusters[label]['elements'].append(idx)
 
     def get_labels(self):
+        print('self.get_times()', self.get_times())
         labels = [0 for i in range(len(self.get_times()))]
         for cluster in self.clusters:
             for idx in cluster['elements']:
                 labels[idx] = cluster['id']
 
+        print('labels', labels)
+
         return labels
 
     def get_cluster(self, idx):
-        return list(map(lambda x: x[0], filter(lambda x: x[1] == idx, zip(self.data, self.get_labels()))))
+        return list(map(lambda x: x[0], filter(lambda x: x[1] == idx, zip(self.solutions.values(), self.get_labels()))))
 
     def get_cluster_info(self, idx):
         return self.clusters[idx]
 
-    def get_times_by_test(self, idx):
-        time = list(map(lambda x: x['tests']['time'][self.skip_count:],
-                        filter(lambda x: not x['tests']['tl'], self.get_cluster(idx))))
+    def get_count_tests(self):
+        return len(list(self.tests))
 
-        return [[el[key - self.skip_count] for el in time] for key in range(self.skip_count, self.count_tests)]
+    def get_times_by_test(self, idx):
+        time = list(map(lambda x: x.times[self.skip_count:],
+                        filter(lambda x: not x.tl, self.get_cluster(idx))))
+
+        return [[el[key - self.skip_count] for el in time] for key in range(self.skip_count, self.get_count_tests())]
 
     def get_times(self):
-        return list(map(lambda x: x['tests']['time'][self.skip_count:], self.data))
+        return list(map(lambda s: s.times[self.skip_count:], self.solutions.values()))
 
     def update_tests(self, tests):
         new_tests = []
@@ -124,7 +136,7 @@ class Project:
             file_md5 = md5(testname)
 
             if testname not in self.tests:
-                test = self.new_test(testname, len(list(self.tests.keys())), file_md5=file_md5)
+                test = self.new_test(testname, self.get_count_tests(), file_md5=file_md5)
                 self.tests[testname] = test
                 new_tests.append(test)
             else:
@@ -149,7 +161,7 @@ class Project:
 
     def get_solution(self, source):
         if source['file'] not in self.solutions:
-            s = solution.Solution(self, source['file'])
+            s = solution.Solution(self, filename=source['file'])
             self.solutions[source['file']] = s
 
         return self.solutions[source['file']]

@@ -18,15 +18,25 @@ def safe_set(lst, idx, value):
 
 
 class Solution:
-    def __init__(self, project, filename):
+    def __init__(self, project, filename=None, obj=None):
         self.project = project
-        self.filepath = filename
-        self.filename = os.path.split(filename)[1]
-        self.meta = parse_filename(filename)
-
         self.times = []
         self.rt = []
         self.tl = []
+
+        if filename is not None:
+            self.filepath = filename
+            self.filename = os.path.split(filename)[1]
+            self.meta = parse_filename(filename)
+
+        if obj is not None:
+            self.filepath = obj['name']['file']
+            self.filename = obj['name']['filename']
+            self.meta = obj['name']['meta']
+
+            self.times = obj['tests']['time']
+            self.rt = obj['tests']['rt']
+            self.tl = obj['tests']['tl']
 
     def set_test(self, test, time=None, timeout=None, runtime=None):
         test_id = self.project.get_test_id(test['name'])
