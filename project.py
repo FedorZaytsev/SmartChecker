@@ -102,13 +102,10 @@ class Project:
             self.clusters[label]['elements'].append(idx)
 
     def get_labels(self):
-        print('self.get_times()', self.get_times())
         labels = [0 for i in range(len(self.get_times()))]
         for cluster in self.clusters:
             for idx in cluster['elements']:
                 labels[idx] = cluster['id']
-
-        print('labels', labels)
 
         return labels
 
@@ -168,6 +165,8 @@ class Project:
 
     def save(self):
         assert self.output is not None
+        self.output.seek(0)
+        self.output.truncate()
         json.dump({
             'tests': list(self.tests.values()),
             'solutions': [s.dump() for s in self.solutions.values()],
