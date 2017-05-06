@@ -58,11 +58,6 @@ class FetchPage(tk.Frame):
         callback()
 
         self.columnconfigure(0, weight=1)
-        #self.rowconfigure(0, weight=1)
-        #self.rowconfigure(1, weight=1)
-        #self.rowconfigure(2, weight=1)
-        #self.rowconfigure(3, weight=1)
-        #self.rowconfigure(4, weight=1)
 
         self.progress_label = tk.Label(self, text='Progress:')
         self.progress_label.grid(row=0, column=0)

@@ -23,7 +23,6 @@ class ClusterizePage(tk.Frame):
         self.clusters = None
         self.filename = None
         self.spaceframe = None
-        self.clusteringframe = None
         self.doubleClickTime = time.clock()
         self.cluster_views = []
         super().__init__(root)
@@ -65,12 +64,14 @@ class ClusterizePage(tk.Frame):
         print("loaded")
         self.main.print_log('loaded {} solutions'.format(self.main.data.size()))
 
-    def draw_space(self, root):
-        if self.spaceframe is not None:
-            self.spaceframe.destroy()
-            self.spaceframe = None
+    def draw_space(self):
+        if self.spaceframe is None:
+            self.spaceframe = tk.Frame(self)
+            self.spaceframe.grid(column=0, row=0, sticky='nsew')
 
-        self.spaceframe = tk.Frame(root)
+        for window in self.spaceframe.winfo_children():
+            window.destroy()
+
         f = figure.Figure(figsize=(6, 4), dpi=100)
         canvas = FigureCanvasTkAgg(f, master=self.spaceframe)
         a = f.add_subplot(111, projection='3d')
@@ -112,11 +113,7 @@ class ClusterizePage(tk.Frame):
         self.mask = [1 for _ in range(self.main.data.cluster_count())]
 
         self.fill_clusters()
-        self.redraw_plot()
-
-    def redraw_plot(self):
-        self.draw_space(self.clusteringframe)
-        self.spaceframe.pack(side=tk.LEFT, expand=1)
+        self.draw_space()
 
     def destroy_cluster_views(self):
         for el in self.cluster_views:
@@ -125,12 +122,9 @@ class ClusterizePage(tk.Frame):
 
     def draw_data(self):
 
-        if self.clusteringframe is not None:
-            self.clusteringframe.destroy()
-            self.clusteringframe = None
-
-        self.clusteringframe = tk.Frame(self)
-        self.clusteringframe.pack(expand=1, fill=tk.BOTH)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1, minsize=200)
 
         dimentions = self.main.data.get_dimentions()
         print("dimentions {}...".format(dimentions[:3]))
@@ -144,27 +138,34 @@ class ClusterizePage(tk.Frame):
             except ValueError:
                 return False
 
-        self.frame_clusters = tk.Frame(self.clusteringframe)
-        self.frame_clusters.pack(side=tk.RIGHT, expand=1)
+        self.frame_clusters = tk.Frame(self)
+
+        self.frame_clusters.rowconfigure(0, weight=0)
+        self.frame_clusters.columnconfigure(0, weight=1)
+        self.frame_clusters.grid(row=0, column=1, sticky='nsew', pady=(40, 0))
+        self.frame_clusters.rowconfigure(1, weight=0)
+        self.frame_clusters.rowconfigure(2, weight=0)
+        self.frame_clusters.rowconfigure(3, weight=1)
+
         label_cluster_info = tk.Label(self.frame_clusters, text="Maximum count of clusters:")
-        label_cluster_info.pack()
+        label_cluster_info.grid(column=0, row=0)
         textedit_clusters = tk.Entry(self.frame_clusters, exportselection=0, validate='key',
                                      validatecommand=(self.frame_clusters.register(isNumber), '%P'))
         textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
-        textedit_clusters.pack()
+        textedit_clusters.grid(column=0, row=1)
         button_start = tk.Button(self.frame_clusters, text='Clusterize',
                                  command=lambda: self.clusterize(int(textedit_clusters.get())))
-        button_start.pack()
+        button_start.grid(column=0, row=2)
 
         self.clusters = tk.Listbox(self.frame_clusters)
-        self.clusters.pack(expand=1)
+        self.clusters.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
         self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
         self.clusters.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
 
     def on_focus_out(self):
         print('focus_out')
         self.mask = [1 for i in range(len(self.mask))]
-        self.redraw_plot()
+        self.draw_space()
 
     def on_solution_selected_fake(self):
         self.after(200, lambda: self.is_solo_click())
@@ -180,7 +181,7 @@ class ClusterizePage(tk.Frame):
         idx = self.clusters.curselection()[0]
         self.mask = [0.1 for i in range(len(self.mask))]
         self.mask[idx] = 1
-        self.redraw_plot()
+        self.draw_space()
 
     def fill_clusters(self):
         if self.clusters.size() > 0:

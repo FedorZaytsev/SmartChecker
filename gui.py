@@ -46,7 +46,7 @@ class Window:
         self.root.resizable(True, True)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(1, weight=1, minsize=80)
 
         menu = tk.Menu(self.root)
         self.filemenu = tk.Menu(menu)
@@ -118,7 +118,7 @@ class Window:
             self.projectmenu.entryconfigure(0, state=tk.ACTIVE)
 
         self.pages['clustering'] = gui_clusterize.ClusterizePage(self, self.root, set_commands)
-        self.pages['clustering'].grid(column=0, row=0, sticky="ew", pady=(40, 0), padx=(20, 20))
+        self.pages['clustering'].grid(column=0, row=0, sticky="nsew", pady=(40, 0), padx=(0, 40))
 
     def save_project_as(self):
         file = filedialog.asksaveasfile(mode='w')
