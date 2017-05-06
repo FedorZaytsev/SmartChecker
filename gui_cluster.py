@@ -27,9 +27,7 @@ class ClusterWindow(tk.Toplevel):
 
         self.y_max = 0
         for solution in self.data:
-            self.y_max = max(self.y_max, max(solution['tests']['time']))
-
-        print('data[0]', self.data[0]['tests'], len(self.data[0]['tests']['time']))
+            self.y_max = max(self.y_max, max(solution.times))
 
         self.init_controls()
         self.title(self.cluster_info['name'])
@@ -93,7 +91,7 @@ class ClusterWindow(tk.Toplevel):
         popup.add_command(label="Copy", command=lambda: on_copy())
 
         for solution in self.data:
-            meta = solution['name']['meta']
+            meta = solution.meta
             self.solutions.insert(tk.END, '{} {}'.format(meta['username'], meta['date']))
 
         self.solutions.selection_set(0)
@@ -154,8 +152,8 @@ class ClusterWindow(tk.Toplevel):
         canvas = FigureCanvasTkAgg(f, master=self.space_frame)
         a = f.add_subplot(111)
         a.set_ylim([-1, self.y_max+1])
-        tests = self.data[idx]['tests']
-        a.scatter([i+1 for i in range(len(tests['time']))], [e for e in tests['time']], c='red', marker='o', s=16)
+        times = self.data[idx].times
+        a.scatter([i+1 for i in range(len(times))], [e for e in times], c='red', marker='o', s=16)
         a.set_title('Time')
         a.set_xlabel('test id')
         a.set_ylabel('time')
