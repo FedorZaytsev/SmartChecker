@@ -57,186 +57,6 @@ def get_tests(testsfolder):
     return sorted(lst, key=lambda x: int(os.path.basename(x)))
 
 
-def kill_process_new(pid):
-    assert False
-    print('killing process', pid)
-    try:
-        proc = subprocess.Popen(['pkill', '-TERM', '-P', str(pid)])
-        output, err = proc.communicate(timeout=10)
-        if proc.returncode != 0:
-            print("Fatal! Cannot kill pid {}".format(pid))
-            return subprocess.CalledProcessError(proc.returncode, ' '.join(proc.args))
-    except subprocess.TimeoutExpired as err:
-        print("FATAL! KILL PROCESS TIMEOUT")
-
-def kill_process(pid):
-    print('killing process', pid)
-    try:
-        proc = subprocess.Popen(['pkill', '-TERM', '-P', str(pid)])
-        output, err = proc.communicate(timeout=10)
-        if proc.returncode != 0:
-            print("Fatal! Cannot kill pid {}".format(pid))
-            return subprocess.CalledProcessError(proc.returncode, ' '.join(proc.args))
-    except subprocess.TimeoutExpired as err:
-        print("FATAL! KILL PROCESS TIMEOUT")
-
-def ttt(cmd, input=None, timeout=1, output=False, error=False):
-
-    child_pid = os.fork()
-    if child_pid == 0:
-
-        if input:
-            stdin_fd = os.open(input, os.O_RDONLY)
-            os.close(0)
-            os.dup2(stdin_fd, 0)
-            os.close(stdin_fd)
-        if output:
-            stdout_fd = os.open('./stdout', os.O_WRONLY | os.O_CREAT)
-            os.close(1)
-            os.dup2(stdout_fd, 1)
-            os.close(stdout_fd)
-        if error:
-            stderr_fd = os.open('./stderr', os.O_WRONLY | os.O_CREAT)
-            os.close(1)
-            os.dup2(stderr_fd, 2)
-            os.close(stderr_fd)
-        os.execvp(cmd[0], cmd)
-        exit(0)
-    else:
-        return_code = None
-
-        start_time = datetime.datetime.now()
-        while (datetime.datetime.now() - start_time).total_seconds() < timeout:
-            wpid, rc = os.waitpid(child_pid, os.WNOHANG)
-            if wpid == child_pid:
-                return_code = rc
-                break
-            time.sleep(0.1)
-
-        if return_code is None:
-            print("return code is None")
-            os.killpg(child_pid, signal.SIGINT)
-            raise subprocess.TimeoutExpired(cmd, timeout)
-        elif return_code != 0:
-            raise subprocess.CalledProcessError(return_code, cmd)
-        else:
-            if output and error:
-                return open('./stdout', errors='ignore').read(), open('./stderr', errors='ignore').read()
-
-            if output:
-                return open('./stdout', errors='ignore').read()
-
-            if error:
-                return open('./stderr', errors='ignore').read()
-
-
-def call_process_new(command, input=None, timeout=None, output=False, error=False, programname=None):
-    print("call_process {}, input {}, {}, {}".format(command, input, output, error))
-
-    output = ttt(command, input, timeout=timeout, output=output, error=error)
-
-    print("got {}".format(output))
-
-    return output
-
-    """cmd = command#' '.join(["'{}'".format(cmd) for cmd in command])
-    print("call_process {}".format(cmd))
-
-    pid = os.spawnvp(os.P_NOWAIT, cmd[0], cmd[1:])
-
-    start_time = datetime.datetime.now()
-    while True:
-        pid, status = os.waitpid(pid, os.WNOHANG)
-        if (datetime.datetime.now() - start_time).total_seconds() > timeout:
-            kill_process(pid)
-            raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)
-
-        if pid == 0:
-            time.sleep(0.1)
-        else:
-"""
-
-
-    """reference = [None]
-
-    def timeout_called(programname):
-        sarge.run('pkill {}'.format(programname))
-
-    t = threading.Timer(timeout+0.5, lambda: timeout_called(programname))
-    t.start()
-    reference[0] = sarge.Command(cmd, stdout=sarge.Capture(), stderr=sarge.Capture())
-    reference[0].run(input=input)
-    t.cancel()
-
-    proc = reference[0]
-
-    proc.stdout.close()
-    output_data = proc.stdout.read().decode('UTF-8', errors='ignore')
-    error_data = proc.stderr.read().decode('UTF-8', errors='ignore')
-
-    if proc.returncode != 0:
-        error_data = proc.stderr.read().decode('UTF-8', errors='ignore')
-        raise subprocess.CalledProcessError(output=error_data, cmd=command, returncode=proc.returncode)
-
-    if output and error:
-        return output_data, error_data
-
-    if output:
-        return output_data
-
-    if error:
-        return error_data"""
-
-    """mytemp.seek(0)
-    mytemp.truncate()
-    print('call_process', command)
-    proc = subprocess.Popen(command,
-                            stderr=mytemp, stdout=mytemp, stdin=input,
-                            universal_newlines=True, errors='ignore')
-    #                        stderr=output, stdout=output, stdin=subprocess.PIPE, universal_newlines=True)
-
-    output = ''
-    errors = ''
-    try:
-        print('communicate')
-        output, errors = proc.communicate(timeout=timeout)
-        print('done')
-    except subprocess.TimeoutExpired as error:
-        kill_process(proc.pid)
-        raise error
-
-    mytemp.seek(0)
-    data = mytemp.read()
-
-    if proc.returncode != 0:
-        raise subprocess.CalledProcessError(output=data, cmd=command, returncode=proc.returncode)
-
-    return data"""
-
-import gc
-def call_process_old_old(command, input=None, timeout=None):
-    print("call_process ", command)
-    proc = subprocess.Popen(command,
-                            stderr=subprocess.STDOUT, stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                            universal_newlines=True, errors='ignore')
-    #                        stderr=output, stdout=output, stdin=subprocess.PIPE, universal_newlines=True)
-    #print("popen")
-    print("gc", gc.get_count())
-    output = ''
-    errors = ''
-    try:
-        output, errors = proc.communicate(timeout=timeout, input=input)
-        #print("communicated")
-    except subprocess.TimeoutExpired as error:
-        kill_process(proc.pid)
-
-    data = output
-    if proc.returncode != 0:
-        raise subprocess.CalledProcessError(output=data, cmd=command, returncode=proc.returncode)
-
-    return data
-
-
 def call_process(command, timeout, input='/dev/null', output=False, error=False):
     assert type(command) is str
 
@@ -246,23 +66,23 @@ def call_process(command, timeout, input='/dev/null', output=False, error=False)
     command = '{} {} {} < {} 1>"{}" 2>"{}"'.format(config['tests']['timeout_prog'], timeout, command, input, stdout,
                                                   stderr)
 
-    print('call_process', command)
+    #print('call_process', command)
 
     rc = os.system(command)
 
-    print('return code', rc)
+    #print('return code', rc)
     return_code = (rc >> 8) & 0xff
 
     if return_code == 124:  #gtimeout TIMEOUT status
         raise subprocess.TimeoutExpired(command, timeout)
 
-
     def get_data(filename):
         with open(filename, 'r', errors='ignore') as f:
             return f.read()
 
-    if return_code != 0:
-        raise subprocess.CalledProcessError(return_code, command, output=get_data(stdout),stderr=get_data(stderr))
+    #because fuck you, thats why
+    #if return_code != 0:
+    #    raise subprocess.CalledProcessError(return_code, command, output=get_data(stdout),stderr=get_data(stderr))
 
     if output and error:
         return get_data(stdout) and get_data(stderr)
@@ -283,7 +103,6 @@ def compile_source(file, output):
 
     try:
         output = call_process(cmd, timeout=30, output=True)
-        print('compile got', output)
         #rc = os.system(cmd)
         #if rc != 0:
         #    raise subprocess.CalledProcessError(rc, cmd)
@@ -330,11 +149,10 @@ def run_test(path, program_name, test):
 
     cmd = 'time -p "{}"'.format(filepath)
     command = ['time', '-p', filepath]
-    #test_data = open(test['name'], 'r').read()
 
     error = call_process(cmd, timeout=config['tests'].getfloat('timeout'), input=test['name'], error=True)
 
-    print('run_test', error)
+    #print('run_test', error)
 
     return parse_time(error)
 
