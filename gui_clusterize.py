@@ -30,6 +30,11 @@ class ClusterizePage(tk.Frame):
         self.load_statistic(callback)
 
     def load_statistic(self, callback):
+        if self.main.data is not None:
+            self.load_from_project()
+            callback()
+            return
+
         self.filename = filedialog.askopenfilename()
 
         if self.filename == '':
@@ -41,21 +46,24 @@ class ClusterizePage(tk.Frame):
         def load_stat_thread():
             with open(self.filename, 'r') as file:
                 self.main.data = project.Project(file=file)
-            self.main.data.drop_rt()
-            #self.main.data.drop_tl()
-            #self.main.data.drop_test_failed()
-            print("Loaded {} elements".format(self.main.data.size()))
-            self.draw_data()
-            self.redraw()
-            #self.fill_clusters()
-            #self.cluster_views = [None for i in range(len(self.main.data.clusters))]
 
-            print("loaded")
-            self.main.print_log('loaded {} solutions'.format(self.main.data.size()))
+            self.load_from_project()
             loading.destroy()
 
         t = threading.Thread(name='load_statistic', target=load_stat_thread)
         t.start()
+
+
+    def load_from_project(self):
+        self.main.data.drop_rt()
+        # self.main.data.drop_tl()
+        # self.main.data.drop_test_failed()
+        print("Loaded {} elements".format(self.main.data.size()))
+        self.draw_data()
+        self.redraw()
+
+        print("loaded")
+        self.main.print_log('loaded {} solutions'.format(self.main.data.size()))
 
     def draw_space(self, root):
         if self.spaceframe is not None:
@@ -78,7 +86,7 @@ class ClusterizePage(tk.Frame):
         for idx, label in enumerate(np.unique(self.main.data.get_labels())):
 
             time = self.main.data.get_times_by_test(idx)
-            print("times", time)
+            #print("times", time)
             assert idx < len(colors)
             assert idx < len(self.mask)
             off = self.main.data.skip_count

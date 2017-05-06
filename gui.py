@@ -11,6 +11,7 @@ import sys
 
 window = None
 
+
 class MyStream(object):
     def __init__(self, target):
         self.target = target
@@ -43,6 +44,9 @@ class Window:
         self.root.geometry("800x500")
         self.root.title("Smart checker")
         self.root.resizable(True, True)
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        self.root.rowconfigure(1, weight=1)
 
         menu = tk.Menu(self.root)
         self.filemenu = tk.Menu(menu)
@@ -60,10 +64,10 @@ class Window:
         menu.add_cascade(label="Project", menu=self.projectmenu)
         self.root.config(menu=menu)
 
-        logframe = tk.Frame(self.root, borderwidth=1, relief="sunken")
-        logframe.pack(side='bottom', pady=(20, 20))
+        self.logframe = tk.Frame(self.root, borderwidth=1, relief="sunken")
+        self.logframe.grid(column=0, row=1, sticky="sew", pady=(0, 20), padx=(40, 40))
 
-        self.log = scrolledtext.ScrolledText(logframe, height=5)
+        self.log = scrolledtext.ScrolledText(self.logframe, height=5, selectborderwidth=0, highlightthickness=0)
         self.log.pack(fill='both')
         self.log.configure(state='disabled')
         self.log.bind("<1>", lambda event: self.log.focus_set())
@@ -88,7 +92,7 @@ class Window:
             self.projectmenu.entryconfigure(0, state=tk.DISABLED)
 
         self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
-        self.pages['fetch'].pack(expand=1)
+        self.pages['fetch'].grid(column=0, row=0, sticky="ew", pady=(40, 0), padx=(100, 100))
 
     @staticmethod
     def show_loading(title):
@@ -114,7 +118,7 @@ class Window:
             self.projectmenu.entryconfigure(0, state=tk.ACTIVE)
 
         self.pages['clustering'] = gui_clusterize.ClusterizePage(self, self.root, set_commands)
-        self.pages['clustering'].pack(expand=1)
+        self.pages['clustering'].grid(column=0, row=0, sticky="ew", pady=(40, 0), padx=(20, 20))
 
     def save_project_as(self):
         file = filedialog.asksaveasfile(mode='w')
@@ -127,7 +131,7 @@ class Window:
     def save_project(self, file):
         if file is None:
             if self.pages['clustering'] is not None:
-                file = open(self.pages['clustering'])
+                file = open(self.pages['clustering'])           #FIX
 
         self.data.save(file)
         self.print_log('Saved')
