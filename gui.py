@@ -2,7 +2,6 @@ import tkinter as tk
 import tkinter.font as font
 import tkinter.scrolledtext as scrolledtext
 import tkinter.filedialog as filedialog
-import tkinter.messagebox as messagebox
 from tkinter import ttk
 
 import gui_clusterize
@@ -146,9 +145,9 @@ class Window:
         self.save_project(file)
 
     def save_project(self, file):
-        if file is None:
-            if self.pages['clustering'] is not None:
-                file = open(self.pages['clustering'].filename, 'w')
+
+        if file is not None:
+            self.data.output = file
 
         self.data.save(file)
         self.print_log('Saved')
