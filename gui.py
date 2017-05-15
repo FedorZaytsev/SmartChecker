@@ -7,6 +7,7 @@ from tkinter import ttk
 
 import gui_clusterize
 import gui_fetch
+import gui_empty
 import sys
 
 window = None
@@ -32,7 +33,8 @@ class Window:
         self.root = None
         self.pages = {
             'clustering': None,
-            'fetch': None
+            'fetch': None,
+            'empty': None,
         }
         self.project_name = None
         self.filemenu = None
@@ -74,6 +76,8 @@ class Window:
 
         self.print_log("Log:")
 
+        self.empty_page()
+
         self.root.mainloop()
 
     def print_log(self, text):
@@ -94,19 +98,6 @@ class Window:
         self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
         self.pages['fetch'].grid(column=0, row=0, sticky="ew", pady=(40, 0), padx=(100, 100))
 
-    @staticmethod
-    def show_loading(title):
-        loading = tk.Toplevel()
-        loading.title(title)
-
-        label = tk.Label(loading, font=font.Font(family='Helvetica', size=36), text='Loading')
-        label.pack(side='top', padx=20, pady=(40, 10))
-
-        bar = ttk.Progressbar(loading, mode='indeterminate')
-        bar.start()
-        bar.pack(side='bottom', padx=20, pady=(10, 40))
-        return loading
-
     def open_project(self):
         self.clear_pages()
 
@@ -119,6 +110,32 @@ class Window:
 
         self.pages['clustering'] = gui_clusterize.ClusterizePage(self, self.root, set_commands)
         self.pages['clustering'].grid(column=0, row=0, sticky="nsew", pady=(40, 0), padx=(0, 40))
+
+    def empty_page(self):
+        self.clear_pages()
+
+        def set_commands():
+            self.filemenu.entryconfigure(0, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(1, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(2, state=tk.DISABLED)
+            self.filemenu.entryconfigure(3, state=tk.DISABLED)
+            self.projectmenu.entryconfigure(0, state=tk.DISABLED)
+
+        self.pages['empty'] = gui_empty.EmptyPage(self, self.root, set_commands)
+        self.pages['empty'].grid(column=0, row=0, sticky="nsew", pady=(100, 0), padx=(0, 0))
+
+    @staticmethod
+    def show_loading(title):
+        loading = tk.Toplevel()
+        loading.title(title)
+
+        label = tk.Label(loading, font=font.Font(family='Helvetica', size=36), text='Loading')
+        label.pack(side='top', padx=20, pady=(40, 10))
+
+        bar = ttk.Progressbar(loading, mode='indeterminate')
+        bar.start()
+        bar.pack(side='bottom', padx=20, pady=(10, 40))
+        return loading
 
     def save_project_as(self):
         file = filedialog.asksaveasfile(mode='w')
