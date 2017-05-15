@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import figure
+import tkinter.scrolledtext as scrolledtext
 
 
 class ClusterWindow(tk.Toplevel):
@@ -50,30 +51,34 @@ class ClusterWindow(tk.Toplevel):
             self.project.clusters[self.idx]['description'] = val
             return True
 
-
         fr1 = tk.Frame(self)
-        fr1.pack(side=tk.LEFT)
-        label1 = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Name:')
-        label1.pack()
+        fr1.grid(row=0, column=0)
+        label_name = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Name:')
+        label_name.grid(row=0, column=0)
+        #label1.pack()
 
         name_input = tk.Entry(fr1, exportselection=0, validate='key',
-                                     validatecommand=(fr1.register(updateName), '%P'))
+                                     validatecommand=(self.register(updateName), '%P'))
         name_input.insert(tk.END, self.cluster_info['name'])
-        name_input.pack()
+        name_input.grid(row=1, column=0)
 
-        label2 = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Description:')
-        label2.pack()
+        label_description = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Description:')
+        label_description.grid(row=2, column=0)
 
         desc_input = tk.Entry(fr1, exportselection=0, validate='key',
-                                     validatecommand=(fr1.register(updateDescription), '%P'))
+                                     validatecommand=(self.register(updateDescription), '%P'))
+        #sv = tk.StringVar()
+        #sv.trace("w", lambda name, index, mode, sv=sv: updateDescription(sv.get()))
+        #desc_input = tk.Text(fr1, height=3, width=10)
+        #desc_input.bind('<<Modified>>', lambda e: print("modified"))
         desc_input.insert(tk.END, self.cluster_info['description'])
-        desc_input.pack()
+        desc_input.grid(row=3, column=0)
 
         self.solutions = tk.Listbox(fr1)
-        self.solutions.pack(expand=1)
+        self.solutions.grid(row=4, column=0)
 
         self.plot_frame = tk.Frame(self)
-        self.plot_frame.pack(side=tk.RIGHT)
+        self.plot_frame.grid(row=0, column=1)
 
         self.show_plot(self.plot_frame, 0)
         self.update()
@@ -83,7 +88,6 @@ class ClusterWindow(tk.Toplevel):
             idx = self.solutions.curselection()[0]
             text = self.data[idx]['name']['file']
             _, text = os.path.split(text)
-            #text = self.solutions.get(idx)
             self.clipboard_clear()
             self.clipboard_append(text)
 
@@ -142,14 +146,11 @@ class ClusterWindow(tk.Toplevel):
         self.show_plot(self.plot_frame, idx)
 
     def show_plot(self, frame, idx):
-        if self.space_frame is not None:
-            self.space_frame.destroy()
-            self.space_frame = None
+        for window in frame.winfo_children():
+            window.destroy()
 
-        self.space_frame = tk.Frame(frame)
-        self.space_frame.pack()
         f = figure.Figure(figsize=(6, 4), dpi=100)
-        canvas = FigureCanvasTkAgg(f, master=self.space_frame)
+        canvas = FigureCanvasTkAgg(f, master=frame)
         a = f.add_subplot(111)
         a.set_ylim([-1, self.y_max+1])
         times = self.data[idx].times
