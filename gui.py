@@ -95,7 +95,7 @@ class Window:
             self.projectmenu.entryconfigure(0, state=tk.DISABLED)
 
         self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
-        self.pages['fetch'].grid(column=0, row=0, sticky="ew", pady=(40, 0), padx=(100, 100))
+        self.pages['fetch'].grid(column=0, row=0, sticky="ew", pady=(80, 0), padx=(100, 100))
 
     def open_project(self):
         self.clear_pages()
@@ -108,7 +108,7 @@ class Window:
             self.projectmenu.entryconfigure(0, state=tk.ACTIVE)
 
         self.pages['clustering'] = gui_clusterize.ClusterizePage(self, self.root, set_commands)
-        self.pages['clustering'].grid(column=0, row=0, sticky="nsew", pady=(40, 0), padx=(0, 40))
+        self.pages['clustering'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(0, 40))
 
     def empty_page(self):
         self.clear_pages()
