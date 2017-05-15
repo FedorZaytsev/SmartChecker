@@ -131,7 +131,7 @@ class Window:
     def save_project(self, file):
         if file is None:
             if self.pages['clustering'] is not None:
-                file = open(self.pages['clustering'])           #FIX
+                file = open(self.pages['clustering'].filename, 'w')
 
         self.data.save(file)
         self.print_log('Saved')
