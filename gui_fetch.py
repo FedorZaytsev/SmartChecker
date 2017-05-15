@@ -58,6 +58,10 @@ class FetchPage(tk.Frame):
         callback()
 
         self.columnconfigure(0, weight=1)
+        #self.rowconfigure(0, weight=1)
+        #self.rowconfigure(1, weight=1)
+        #self.rowconfigure(2, weight=1)
+        #self.rowconfigure(4, weight=1)
 
         self.progress_label = tk.Label(self, text='Processed zero solutions')
         self.progress_label.grid(row=0, column=0)
@@ -75,6 +79,9 @@ class FetchPage(tk.Frame):
         self.estimated_time_box = tk.Label(self)
         self.estimated_time_box.grid(row=4, column=0)
         self.estimated_time_box.config(text="Estimated time: calculating...")
+
+        self.pause_btn = tk.Button(self, text='Pause', command=self.fetch_pause)
+        self.pause_btn.grid(row=5, column=0, sticky='e', pady=(20, 0))
 
         t = threading.Thread(name='fetch.check_folder', target=self.test_task_continue)
         t.start()
@@ -125,3 +132,11 @@ class FetchPage(tk.Frame):
         self.main.open_project()
 
         print("test_task end")
+
+    def fetch_pause(self):
+        if fetch.is_running.is_set():
+            fetch.is_running.clear()
+            self.pause_btn.config(text='Continue')
+        else:
+            fetch.is_running.set()
+            self.pause_btn.config(text='Pause')

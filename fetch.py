@@ -1,19 +1,11 @@
-import os
 import re
-import signal
+import threading
 import subprocess
 import numpy as np
-import threading
-import json
-import queue
 from settings import *
-import tempfile
-import hashlib
-import project
-import sarge
-import datetime
-import time
-sarge.default_capture_timeout = config['tests'].getfloat('timeout')
+
+
+is_running = threading.Event()
 
 
 def list_files(dir):
@@ -164,6 +156,9 @@ def run_tests(solution, tests, outputfolder, gui_checker_test, gui_error):
     runtime = False
     for idx_test, test in enumerate(tests):
         average = []
+
+        is_running.wait()
+
         gui_checker_test(idx_test, len(tests))
         for i in range(int(config['tests']['count'])):
 
@@ -220,7 +215,7 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, fo
 
         run_tests(solution, tests, outputfolder, gui_checker_test, gui_error)
 
-        if idx % 100 == 0:
+        if idx != 0 and idx % 100 == 0:
             gui_error("Storing data....")
             proj.save()
             gui_error("Done")
@@ -231,12 +226,12 @@ def check_folder(folder, gui_checker, gui_checker_test, gui_error, proj):
     sources = get_sources(os.path.join(folder, 'sources'))
     tests = get_tests(os.path.join(folder, 'tests'))
     tests = proj.update_tests(tests)
+    is_running.set()
 
     sources = filter_sources(sources)
     progress_counter = len(sources) * len(tests)
     gui_checker_test_l = lambda idx, count: gui_checker_test(idx, count, progress_counter)
     process_sources(sources, tests, gui_checker, gui_checker_test_l, gui_error, folder, proj)
-
 
 
 def get_new_sources(project, sources):
@@ -252,20 +247,6 @@ def get_new_sources(project, sources):
                 new.append(source)
 
     return new
-
-
-def is_file_modified(project, testname):
-    def find_test(mytest):
-        for idx, test in enumerate(project.tests):
-            if test['name'] == mytest:
-                return test, idx
-        return None
-
-    test, idx = find_test(testname)
-    if test is None:
-        return None, None
-
-    return test['hash'] == md5(testname), idx
 
 
 def upgrade(folder, gui_checker, gui_checker_test, gui_error, project):
