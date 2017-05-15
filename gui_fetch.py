@@ -79,17 +79,23 @@ class FetchPage(tk.Frame):
         t = threading.Thread(name='fetch.check_folder', target=self.test_task_continue)
         t.start()
 
+    @staticmethod
+    def shorten_path(path):
+        max_len = 60
+        if len(path) > max_len:
+            path = path[:max_len//2] + '...' + path[-max_len//2:]
+        return path
+
     def step(self, idx, size, name):
         self.current_user_idx = idx
         self.progress_bar['value'] = idx
         self.progress_bar['maximum'] = size-1
-        self.textbox.config(text="Testing\n{}".format(os.path.basename(name['file'])))
+        self.textbox.config(text="Testing {}".format(self.shorten_path(os.path.basename(name['file']))))
         self.progress_label.config(text="Processed {} of {}".format(idx + 1, size))
 
     def step_test(self, idx, size, overall_count):
         self.progress_test['value'] = idx
         self.progress_test['maximum'] = size-1
-        #self.progress_test_label.config(text="Testing: {}/{}".format(idx + 1, size))
 
         self.estimated_time_box.config(text=self.calculate_estimated_time(idx, size, overall_count))
 
