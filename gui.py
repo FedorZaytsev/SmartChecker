@@ -156,6 +156,7 @@ class Window:
         pass
 
     def clear_pages(self):
+        self.data = None
         for name, page in self.pages.items():
             if page is not None:
                 page.destroy()
