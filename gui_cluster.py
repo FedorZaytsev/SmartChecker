@@ -169,6 +169,6 @@ class ClusterWindow(tk.Toplevel):
 
         idx = self.solutions.curselection()[0]
         self.solutions.activate(idx)
-        subprocess.call([config['view']['editor_cmd'], self.data[idx]['name']['file']])
+        subprocess.call([config['view']['editor_cmd'], self.data[idx].filepath])
 
 

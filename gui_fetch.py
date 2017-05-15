@@ -59,7 +59,7 @@ class FetchPage(tk.Frame):
 
         self.columnconfigure(0, weight=1)
 
-        self.progress_label = tk.Label(self, text='Progress:')
+        self.progress_label = tk.Label(self, text='Processed zero solutions')
         self.progress_label.grid(row=0, column=0)
 
         self.progress_bar = ttk.Progressbar(self, length=400)
@@ -84,7 +84,7 @@ class FetchPage(tk.Frame):
         self.progress_bar['value'] = idx
         self.progress_bar['maximum'] = size-1
         self.textbox.config(text="Testing\n{}".format(os.path.basename(name['file'])))
-        self.progress_label.config(text="{}/{}".format(idx + 1, size))
+        self.progress_label.config(text="Processed {} of {}".format(idx + 1, size))
 
     def step_test(self, idx, size, overall_count):
         self.progress_test['value'] = idx
@@ -103,9 +103,7 @@ class FetchPage(tk.Frame):
             else:
                 self.prev_timedelta = self.curr_timedelta
 
-            print("estimated", timedelta)
             timedelta = (timedelta - self.prev_timedelta)*self.estimated_time_coef + self.prev_timedelta
-            print("showed", timedelta)
             self.curr_timedelta = timedelta
 
             self.estimated_time_box.config(
@@ -117,7 +115,6 @@ class FetchPage(tk.Frame):
         fetch.check_folder(self.directory, self.step, self.step_test, self.main.print_log, self.main.data)
 
         self.main.data.save()
-        #messagebox.showinfo(title='Saved', message='Done!')
 
         self.main.open_project()
 

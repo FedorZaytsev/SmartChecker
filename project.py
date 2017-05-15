@@ -31,7 +31,6 @@ class Project:
         if 'output' in kwargs:
             self.output = kwargs['output']
 
-
     def drop_rt(self):
         self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.rt) == 0)
 
@@ -40,6 +39,18 @@ class Project:
 
     def drop_test_failed(self):
         self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.meta['status']) == 'PASSED_TESTS')
+
+    def is_tl_occured(self):
+        for solution in self.solutions:
+            if len(solution.tl) > 0:
+                return True
+        return False
+
+    def is_rt_occured(self):
+        for solution in self.solutions:
+            if len(solution.rt) > 0:
+                return True
+        return False
 
     def size(self):
         return len(list(self.solutions.values()))

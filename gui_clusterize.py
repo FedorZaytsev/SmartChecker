@@ -1,13 +1,13 @@
 import numpy as np
-import json
-import fetch
 import time
 import threading
 import clustering
+import traceback
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import tkinter.messagebox as messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import figure
 import project
@@ -40,12 +40,16 @@ class ClusterizePage(tk.Frame):
             return
 
         loading = self.main.show_loading("Loading...")
-        callback()
 
         def load_stat_thread():
-            with open(self.filename, 'r') as file:
-                self.main.data = project.Project(file=file)
+            try:
+                with open(self.filename, 'r') as file:
+                    self.main.data = project.Project(file=file)
+            except Exception as e:
+                traceback.print_exc()
+                messagebox.showerror('Error', 'Exception occurred while parsing file. See log for more information')
 
+            callback()
             self.load_from_project()
             loading.destroy()
 
@@ -54,7 +58,7 @@ class ClusterizePage(tk.Frame):
 
 
     def load_from_project(self):
-        self.main.data.drop_rt()
+        #self.main.data.drop_rt()
         # self.main.data.drop_tl()
         # self.main.data.drop_test_failed()
         print("Loaded {} elements".format(self.main.data.size()))
