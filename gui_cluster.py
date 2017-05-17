@@ -67,10 +67,6 @@ class ClusterWindow(tk.Toplevel):
 
         desc_input = tk.Entry(fr1, exportselection=0, validate='key',
                                      validatecommand=(self.register(updateDescription), '%P'))
-        #sv = tk.StringVar()
-        #sv.trace("w", lambda name, index, mode, sv=sv: updateDescription(sv.get()))
-        #desc_input = tk.Text(fr1, height=3, width=10)
-        #desc_input.bind('<<Modified>>', lambda e: print("modified"))
         desc_input.insert(tk.END, self.cluster_info['description'])
         desc_input.grid(row=3, column=0)
 

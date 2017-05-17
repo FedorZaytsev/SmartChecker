@@ -20,8 +20,8 @@ def is_number(val):
     if val == "":
         return True
     try:
-        int(val)
-        return True
+        num = int(val)
+        return num > 0
     except ValueError:
         return False
 
@@ -52,8 +52,8 @@ class ClusterizePage(tk.Frame):
         self.frame_clusters.columnconfigure(0, weight=1)
         self.frame_clusters.grid(row=0, column=1, sticky='nsew', pady=(40, 0))
         self.frame_clusters.rowconfigure(2, weight=0)
-        self.frame_clusters.rowconfigure(3, weight=0)
-        self.frame_clusters.rowconfigure(4, weight=1)
+        self.frame_clusters.rowconfigure(3, weight=1)
+        #self.frame_clusters.rowconfigure(4, weight=1)
 
         fr1 = tk.Frame(self.frame_clusters)
         fr1.grid(column=0, row=0)
@@ -73,16 +73,22 @@ class ClusterizePage(tk.Frame):
 
         label_cluster_info = tk.Label(self.frame_clusters, text="Maximum count of clusters:")
         label_cluster_info.grid(column=0, row=1)
-        textedit_clusters = tk.Entry(self.frame_clusters, exportselection=0, validate='key',
+
+        fr_btn = tk.Frame(self.frame_clusters)
+        fr_btn.grid(column=0, row=2)
+        button_start = tk.Button(fr_btn, text='Clusterize',
+                                 command=lambda: self.clusterize(int(self.textedit_clusters.get())))
+        button_start.pack(side=tk.RIGHT)
+        self.textedit_clusters = tk.Entry(fr_btn, exportselection=0, validate='key',
                                      validatecommand=(self.frame_clusters.register(is_number), '%P'))
-        textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
-        textedit_clusters.grid(column=0, row=2)
-        button_start = tk.Button(self.frame_clusters, text='Clusterize',
-                                 command=lambda: self.clusterize(int(textedit_clusters.get())))
-        button_start.grid(column=0, row=3)
+        if len(self.main.data.clusters) == 0:
+            self.textedit_clusters.insert(tk.END, "1")
+        else:
+            self.textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
+        self.textedit_clusters.pack(side=tk.RIGHT)
 
         fr_cluster = tk.Frame(self.frame_clusters)
-        fr_cluster.grid(column=0, row=4, sticky='nsew', pady=(0, 20))
+        fr_cluster.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
         self.clusters = tk.Listbox(fr_cluster)
         self.clusters.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
@@ -94,10 +100,9 @@ class ClusterizePage(tk.Frame):
 
         self.clusters.config(yscrollcommand=self.vbar.set)
 
-
     def change_flags(self, **kwargs):
         self.main.data.change_hidden_flags(**kwargs)
-        self.redraw_plot()
+        self.clusterize(int(self.textedit_clusters.get()))
 
     def load_statistic(self, callback):
         if self.main.data is not None:
@@ -130,7 +135,10 @@ class ClusterizePage(tk.Frame):
     def load_from_project(self):
         print("Loaded {} elements".format(self.main.data.size()))
         self.init_controls()
-        self.redraw_plot()
+        if len(self.main.data.clusters) == 0:
+            self.clusterize(1)
+        else:
+            self.redraw_plot()
 
         print("loaded")
         self.main.print_log('loaded {} solutions'.format(self.main.data.size()))
