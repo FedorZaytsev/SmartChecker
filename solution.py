@@ -50,6 +50,7 @@ class Solution:
             time = float(config['tests']['timeout']) * 1000
 
         safe_set(self.times, test_id, time)
+        self.project.drop_cache()
 
     def dump(self):
         return {
