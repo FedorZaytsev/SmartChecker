@@ -1,6 +1,7 @@
 import os
 import time
 import subprocess
+import ListboxEx
 import tkinter as tk
 import tkinter.font as font
 from settings import *
@@ -52,29 +53,28 @@ class ClusterWindow(tk.Toplevel):
             return True
 
         fr1 = tk.Frame(self)
-        fr1.grid(row=0, column=0)
+        fr1.grid(row=0, column=0, padx=(60, 0))
         label_name = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Name:')
-        label_name.grid(row=0, column=0)
-        #label1.pack()
+        label_name.grid(row=0, column=0, sticky='e')
 
         name_input = tk.Entry(fr1, exportselection=0, validate='key',
                                      validatecommand=(self.register(updateName), '%P'))
         name_input.insert(tk.END, self.cluster_info['name'])
-        name_input.grid(row=1, column=0)
+        name_input.grid(row=0, column=1)
 
         label_description = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Description:')
-        label_description.grid(row=2, column=0)
+        label_description.grid(row=1, column=0, sticky='e')
 
         desc_input = tk.Entry(fr1, exportselection=0, validate='key',
                                      validatecommand=(self.register(updateDescription), '%P'))
         desc_input.insert(tk.END, self.cluster_info['description'])
-        desc_input.grid(row=3, column=0)
+        desc_input.grid(row=1, column=1)
 
-        self.solutions = tk.Listbox(fr1)
-        self.solutions.grid(row=4, column=0)
+        self.solutions = ListboxEx.ListboxEx(fr1, height=15)
+        self.solutions.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
         self.plot_frame = tk.Frame(self)
-        self.plot_frame.grid(row=0, column=1)
+        self.plot_frame.grid(row=0, column=2)
 
         self.show_plot(self.plot_frame, 0)
         self.update()
