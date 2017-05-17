@@ -3,6 +3,7 @@ import threading
 import subprocess
 import numpy as np
 from settings import *
+import tempfile
 
 
 is_running = threading.Event()
@@ -84,15 +85,15 @@ def call_process(command, timeout, input='/dev/null', output=False, error=False)
         return get_data(stderr)
 
 
-def compile_source(file, output):
+def compile_source(file, output_path):
     opts = config['compiler']
 
-    output_path = os.path.join(output, file['meta']['username'])
     cmd = '{} {} -o "{}" "{}"'.format(opts['name'], opts['options'], output_path, file['file'])
     params = list(filter(len, opts['options'].split(' ')))
     command = [opts['name'], *params, '-o', output_path, file['file']]
     print('compiling', command)
 
+    output = ''
     try:
         output = call_process(cmd, timeout=30, output=True)
         #rc = os.system(cmd)
@@ -197,23 +198,24 @@ def run_tests(solution, tests, outputfolder, gui_checker_test, gui_error):
             solution.set_test(test, time=np.mean(average))
 
 
-def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, folder, proj):
-    outputfolder = os.path.join(folder, "executables")
-    if not os.path.exists(outputfolder):
-        os.makedirs(outputfolder)
+def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, proj):
+    outputfolder = tempfile.gettempdir()
 
     for idx, source in enumerate(sources):
         print("Running {} of {}".format(idx, len(sources)))
         gui_checker(idx, len(sources), source)
 
         solution = proj.get_solution(source)
+        output_path = os.path.join(outputfolder, source['meta']['username'])
         try:
-            compile_source(source, outputfolder)
+            compile_source(source, output_path)
         except subprocess.CalledProcessError:
             gui_error("Cannot compile file {}".format(os.path.basename(source['file'])))
             continue
 
         run_tests(solution, tests, outputfolder, gui_checker_test, gui_error)
+
+        os.remove(output_path)
 
         if idx != 0 and idx % 100 == 0:
             gui_error("Storing data....")
@@ -221,17 +223,18 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, fo
             gui_error("Done")
 
 
-def check_folder(folder, gui_checker, gui_checker_test, gui_error, proj):
-    print("Taking test from folder {}".format(folder))
-    sources = get_sources(os.path.join(folder, 'sources'))
-    tests = get_tests(os.path.join(folder, 'tests'))
+def check_folder(sources_folder, tests_folder, gui_checker, gui_checker_test, gui_error, proj):
+    print("Taking sources from {}, tests from {}".format(sources_folder, tests_folder))
+    gui_error("Taking sources from {}, tests from {}".format(sources_folder, tests_folder))
+    sources = get_sources(sources_folder)
+    tests = get_tests(tests_folder)
     tests = proj.update_tests(tests)
     is_running.set()
 
     sources = filter_sources(sources)
     progress_counter = len(sources) * len(tests)
     gui_checker_test_l = lambda idx, count: gui_checker_test(idx, count, progress_counter)
-    process_sources(sources, tests, gui_checker, gui_checker_test_l, gui_error, folder, proj)
+    process_sources(sources, tests, gui_checker, gui_checker_test_l, gui_error, proj)
 
 
 def get_new_sources(project, sources):
