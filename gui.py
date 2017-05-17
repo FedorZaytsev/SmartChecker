@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.font as font
 import tkinter.scrolledtext as scrolledtext
+import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 from tkinter import ttk
 
@@ -20,7 +21,6 @@ class MyStream(object):
         if window is not None and False:
             window.print_log(s)
         self.target.write(s)
-#sys.stdout = MyStream(sys.stdout)
 
 
 class Window:
@@ -56,7 +56,8 @@ class Window:
         self.filemenu.add_command(label='Save', command=lambda: self.save_project(None), state=tk.DISABLED)
         self.filemenu.add_command(label='Save as', command=self.save_project_as, state=tk.DISABLED)
         self.filemenu.add_separator()
-        self.filemenu.add_command(label="Exit", command=self.root.quit)
+        self.filemenu.add_command(label="Exit", command=self.close_window)
+        self.root.protocol("WM_DELETE_WINDOW", self.close_window)
 
         self.projectmenu = tk.Menu(menu)
         self.projectmenu.add_command(label='Upgrade', command=self.upgrade, state=tk.DISABLED)
@@ -161,6 +162,17 @@ class Window:
             if page is not None:
                 page.destroy()
                 self.pages[name] = None
+
+    def close_window(self):
+        print('close_window')
+        if self.data is not None:
+            if self.data.is_changed:
+                if messagebox.askyesno("Save?", "Project has been changed. Save?"):
+                    self.data.save()
+
+        print("self.data.is_changed", self.data.is_changed)
+        sys.stdout.flush()
+        self.root.quit()
 
 
 def main():
