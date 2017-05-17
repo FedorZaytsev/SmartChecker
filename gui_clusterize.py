@@ -94,11 +94,6 @@ class ClusterizePage(tk.Frame):
 
         self.clusters.config(yscrollcommand=self.vbar.set)
 
-        #vbar = tk.Scrollbar(self.clusters, orient=tk.VERTICAL)
-        #self.clusters.config(yscrollcommand=vbar.set)
-        #vbar.config(command=self.clusters.yview)
-        #vbar.grid(column=1, row=4, sticky='ns')
-
 
     def change_flags(self, **kwargs):
         self.main.data.change_hidden_flags(**kwargs)
@@ -167,10 +162,10 @@ class ClusterizePage(tk.Frame):
             a.scatter(xs=time[dimensions[0]['i']-off], ys=time[dimensions[1]['i']-off], zs=time[dimensions[2]['i']-off],
                       c=colors[idx], marker='o', s=16, alpha=self.mask[idx])
 
-        a.set_title('Time')
-        a.set_xlabel('test {}'.format(dimensions[0]['i']))
-        a.set_ylabel('test {}'.format(dimensions[1]['i']))
-        a.set_zlabel('test {}'.format(dimensions[2]['i']))
+        a.set_title('')
+        a.set_xlabel('Test {}'.format(dimensions[0]['i']))
+        a.set_ylabel('Test {}'.format(dimensions[1]['i']))
+        a.set_zlabel('Test {}'.format(dimensions[2]['i']))
 
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)

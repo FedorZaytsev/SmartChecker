@@ -155,9 +155,9 @@ class ClusterWindow(tk.Toplevel):
         a.set_ylim([-1, self.y_max+1])
         times = self.data[idx].times
         a.scatter([i+1 for i in range(len(times))], [e for e in times], c='red', marker='o', s=16)
-        a.set_title('Time')
-        a.set_xlabel('test id')
-        a.set_ylabel('time')
+        a.set_title('Time passed on different tests')
+        a.set_xlabel('Test id')
+        a.set_ylabel('Time in ms')
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
         canvas._tkcanvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
