@@ -114,7 +114,7 @@ class ClusterizePage(tk.Frame):
         def load_stat_thread():
             try:
                 with open(self.filename, 'r') as file:
-                    self.main.data = project.Project(file=file)
+                    self.main.data = project.Project(file=file, output=self.filename)
             except Exception:
                 traceback.print_exc()
                 messagebox.showerror('Error', 'Exception occurred while parsing file. See log for more information')
