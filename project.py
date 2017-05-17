@@ -19,6 +19,7 @@ class Project:
     def __init__(self, **kwargs):
         self.tests = {}
         self.all_solutions = {}
+        self.name = 'NO NAME'
         self.cached_solutions = None
         self.skip_count = 0
         self.clusters = []
@@ -36,6 +37,7 @@ class Project:
             self.is_tl_hidden = data.get('is_tl_hidden', True)
             self.is_rt_hidden = data.get('is_rt_hidden', True)
             self.is_wa_hidden = data.get('is_wa_hidden', True)
+            self.name = data.get('name', 'NO NAME')
 
         if 'output' in kwargs:
             self.output = kwargs['output']
@@ -219,6 +221,7 @@ class Project:
         file.seek(0)
         file.truncate()
         json.dump({
+            'name': self.name,
             'is_tl_hidden': self.is_tl_hidden,
             'is_rt_hidden': self.is_rt_hidden,
             'is_wa_hidden': self.is_wa_hidden,
@@ -227,8 +230,9 @@ class Project:
             'clusters': self.clusters,
         }, file, sort_keys=True, indent=4)
         file.flush()
-        fetch.is_running.set()
         file.close()
+        self.is_changed = False
+        fetch.is_running.set()
 
 
 
