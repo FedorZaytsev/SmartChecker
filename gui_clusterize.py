@@ -11,8 +11,19 @@ import tkinter.messagebox as messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import figure
 import project
+from settings import *
 
 import gui_cluster
+
+
+def is_number(val):
+    if val == "":
+        return True
+    try:
+        int(val)
+        return True
+    except ValueError:
+        return False
 
 
 class ClusterizePage(tk.Frame):
@@ -27,6 +38,71 @@ class ClusterizePage(tk.Frame):
         self.cluster_views = []
         super().__init__(root)
         self.load_statistic(callback)
+
+    def init_controls(self):
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1, minsize=200)
+
+        dimentions = self.main.data.get_dimentions()
+        print("dimentions {}...".format(dimentions[:3]))
+
+        self.frame_clusters = tk.Frame(self)
+        self.frame_clusters.rowconfigure(0, weight=0)
+        self.frame_clusters.columnconfigure(0, weight=1)
+        self.frame_clusters.grid(row=0, column=1, sticky='nsew', pady=(40, 0))
+        self.frame_clusters.rowconfigure(2, weight=0)
+        self.frame_clusters.rowconfigure(3, weight=0)
+        self.frame_clusters.rowconfigure(4, weight=1)
+
+        fr1 = tk.Frame(self.frame_clusters)
+        fr1.grid(column=0, row=0)
+
+        is_tl = tk.IntVar()
+        is_wa = tk.IntVar()
+        is_tl_button = tk.Checkbutton(fr1, text='hide TL',
+                                      variable=is_tl,
+                                      command=lambda: self.change_flags(tl=is_tl.get() == 1))
+        is_tl_button.select()
+        is_tl_button.grid(row=0, column=0)
+        is_rt_button = tk.Checkbutton(fr1, text='hide WA',
+                                      variable=is_wa,
+                                      command=lambda: self.change_flags(wa=is_wa.get() == 1))
+        is_rt_button.select()
+        is_rt_button.grid(row=0, column=1)
+
+        label_cluster_info = tk.Label(self.frame_clusters, text="Maximum count of clusters:")
+        label_cluster_info.grid(column=0, row=1)
+        textedit_clusters = tk.Entry(self.frame_clusters, exportselection=0, validate='key',
+                                     validatecommand=(self.frame_clusters.register(is_number), '%P'))
+        textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
+        textedit_clusters.grid(column=0, row=2)
+        button_start = tk.Button(self.frame_clusters, text='Clusterize',
+                                 command=lambda: self.clusterize(int(textedit_clusters.get())))
+        button_start.grid(column=0, row=3)
+
+        fr_cluster = tk.Frame(self.frame_clusters)
+        fr_cluster.grid(column=0, row=4, sticky='nsew', pady=(0, 20))
+        self.clusters = tk.Listbox(fr_cluster)
+        self.clusters.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
+        self.clusters.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
+
+        self.vbar = tk.Scrollbar(fr_cluster)
+        self.vbar.config(command=self.clusters.yview)
+        self.vbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.clusters.config(yscrollcommand=self.vbar.set)
+
+        #vbar = tk.Scrollbar(self.clusters, orient=tk.VERTICAL)
+        #self.clusters.config(yscrollcommand=vbar.set)
+        #vbar.config(command=self.clusters.yview)
+        #vbar.grid(column=1, row=4, sticky='ns')
+
+
+    def change_flags(self, **kwargs):
+        self.main.data.change_hidden_flags(**kwargs)
+        self.redraw_plot()
 
     def load_statistic(self, callback):
         if self.main.data is not None:
@@ -45,7 +121,7 @@ class ClusterizePage(tk.Frame):
             try:
                 with open(self.filename, 'r') as file:
                     self.main.data = project.Project(file=file)
-            except Exception as e:
+            except Exception:
                 traceback.print_exc()
                 messagebox.showerror('Error', 'Exception occurred while parsing file. See log for more information')
 
@@ -56,14 +132,10 @@ class ClusterizePage(tk.Frame):
         t = threading.Thread(name='load_statistic', target=load_stat_thread)
         t.start()
 
-
     def load_from_project(self):
-        #self.main.data.drop_rt()
-        # self.main.data.drop_tl()
-        # self.main.data.drop_test_failed()
         print("Loaded {} elements".format(self.main.data.size()))
-        self.draw_data()
-        self.redraw()
+        self.init_controls()
+        self.redraw_plot()
 
         print("loaded")
         self.main.print_log('loaded {} solutions'.format(self.main.data.size()))
@@ -83,17 +155,14 @@ class ClusterizePage(tk.Frame):
         colors = clustering.generate_colors(self.main.data.cluster_count())
 
         # Times
-        #print('mask', self.mask)
         dimensions = self.main.data.get_dimentions()
-        #print('labels', np.unique(self.main.data.get_labels()))
-        #print('mask', self.mask)
-        print('clusters', np.unique(self.main.data.get_labels()))
+        #print('clusters', np.unique(self.main.data.get_labels()))
         for idx, label in enumerate(np.unique(self.main.data.get_labels())):
-
             time = self.main.data.get_times_by_test(idx)
-            #print("times", time)
             assert idx < len(colors)
             assert idx < len(self.mask)
+            if self.mask[idx] > 0.5:
+                print("Drawing {} objects".format(len(time[0])))
             off = self.main.data.skip_count
             a.scatter(xs=time[dimensions[0]['i']-off], ys=time[dimensions[1]['i']-off], zs=time[dimensions[2]['i']-off],
                       c=colors[idx], marker='o', s=16, alpha=self.mask[idx])
@@ -109,9 +178,9 @@ class ClusterizePage(tk.Frame):
 
     def clusterize(self, count):
         self.main.data.clusterize(count)
-        self.redraw()
+        self.redraw_plot()
 
-    def redraw(self):
+    def redraw_plot(self):
         self.destroy_cluster_views()
         self.cluster_views = [None for _ in range(self.main.data.cluster_count())]
         self.mask = [1 for _ in range(self.main.data.cluster_count())]
@@ -123,48 +192,6 @@ class ClusterizePage(tk.Frame):
         for el in self.cluster_views:
             if el is not None:
                 el.destroy()
-
-    def draw_data(self):
-
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1, minsize=200)
-
-        dimentions = self.main.data.get_dimentions()
-        print("dimentions {}...".format(dimentions[:3]))
-
-        def isNumber(val):
-            if val == "":
-                return True
-            try:
-                int(val)
-                return True
-            except ValueError:
-                return False
-
-        self.frame_clusters = tk.Frame(self)
-
-        self.frame_clusters.rowconfigure(0, weight=0)
-        self.frame_clusters.columnconfigure(0, weight=1)
-        self.frame_clusters.grid(row=0, column=1, sticky='nsew', pady=(40, 0))
-        self.frame_clusters.rowconfigure(1, weight=0)
-        self.frame_clusters.rowconfigure(2, weight=0)
-        self.frame_clusters.rowconfigure(3, weight=1)
-
-        label_cluster_info = tk.Label(self.frame_clusters, text="Maximum count of clusters:")
-        label_cluster_info.grid(column=0, row=0)
-        textedit_clusters = tk.Entry(self.frame_clusters, exportselection=0, validate='key',
-                                     validatecommand=(self.frame_clusters.register(isNumber), '%P'))
-        textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
-        textedit_clusters.grid(column=0, row=1)
-        button_start = tk.Button(self.frame_clusters, text='Clusterize',
-                                 command=lambda: self.clusterize(int(textedit_clusters.get())))
-        button_start.grid(column=0, row=2)
-
-        self.clusters = tk.Listbox(self.frame_clusters)
-        self.clusters.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
-        self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
-        self.clusters.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
 
     def on_focus_out(self):
         print('focus_out')
@@ -183,17 +210,17 @@ class ClusterizePage(tk.Frame):
             return
 
         idx = self.clusters.curselection()[0]
-        self.mask = [0.1 for i in range(len(self.mask))]
+        self.mask = [config['view'].getfloat('alpha_select') for i in range(len(self.mask))]
         self.mask[idx] = 1
         self.draw_space()
 
     def fill_clusters(self):
+        print("fill", self.clusters.size())
         if self.clusters.size() > 0:
             self.clusters.delete(0, self.clusters.size()-1)
 
         for cluster in self.main.data.clusters:
             self.clusters.insert(tk.END, '{} ({})'.format(cluster['name'], len(cluster['elements'])))
-
 
     def on_solution_close(self, idx):
         self.cluster_views[idx] = None
@@ -203,7 +230,6 @@ class ClusterizePage(tk.Frame):
         if len(self.clusters.curselection()) == 0:
             return
         idx = self.clusters.curselection()[0]
-        #print("event", idx)
 
         if self.cluster_views[idx] is not None:
             self.cluster_views[idx].lift()

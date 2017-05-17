@@ -10,6 +10,7 @@ name = gcc-6
 options = -O3
 
 [tests]
+timeout_prog = gtimeout
 #Количество вызовов программы для одного теста
 count = 10
 timeout = 2
@@ -17,6 +18,7 @@ force_run_after_timeout = True
 
 [view]
 editor_cmd = subl
+alpha_select = 0.02
 """
 
 def check_settings():
@@ -31,7 +33,3 @@ check_settings()
 config = configparser.ConfigParser()
 config.read('./config.ini')
 
-parser = argparse.ArgumentParser(description='Intelegent check')
-parser.add_argument('--retest', dest='retest', default=False, action='store_true')
-arguments = parser.parse_args()
-print("Done")
