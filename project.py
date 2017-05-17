@@ -20,17 +20,21 @@ class Project:
         self.all_solutions = {}
         self.cached_solutions = None
         self.skip_count = 0
-        self.clusters = {}
+        self.clusters = []
         self.dimentions = None
         self.is_tl_hidden = True
         self.is_rt_hidden = True
         self.is_wa_hidden = True
+        self.is_changed = False
 
         if 'file' in kwargs:
             data = json.load(kwargs['file'])
-            self.clusters = dict((e['id'], e) for e in data['clusters'])
+            self.clusters = data['clusters']
             self.all_solutions = dict((e['name']['file'], solution.Solution(self, obj=e)) for e in data['solutions'])
             self.tests = dict((e['name'], e) for e in data['tests'])
+            self.is_tl_hidden = data.get('is_tl_hidden', True)
+            self.is_rt_hidden = data.get('is_rt_hidden', True)
+            self.is_wa_hidden = data.get('is_wa_hidden', True)
 
         if 'output' in kwargs:
             self.output = kwargs['output']
@@ -45,6 +49,7 @@ class Project:
             self.is_wa_hidden = wa
 
         if tl is not None or rt is not None or wa is not None:
+            self.is_changed = True
             self.drop_cache()
 
     def get_solutions(self):
@@ -52,38 +57,22 @@ class Project:
             return self.cached_solutions
 
         solutions = self.all_solutions
-        print(self.is_tl_hidden, self.is_rt_hidden, self.is_wa_hidden)
-        print('solutions0', len(list(solutions.keys())))
         if self.is_tl_hidden:
             solutions = dict((k, s) for k, s in solutions.items() if len(s.tl) == 0)
 
-        print('solutions1', len(list(solutions.keys())))
         if self.is_rt_hidden:
             solutions = dict((k, s) for k, s in solutions.items() if len(s.rt) == 0)
 
-        print('solutions2', len(list(solutions.keys())))
         if self.is_wa_hidden:
             solutions = dict((k, s) for k, s in solutions.items() if s.meta['status'] == 'PASSED_TESTS')
 
-        print('solutions3', len(list(solutions.keys())))
         self.cached_solutions = solutions
         return self.cached_solutions
 
     def drop_cache(self):
         print("Project cache dropped")
         self.cached_solutions = None
-
-    def drop_rt(self):
-        assert False
-        self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.rt) == 0)
-
-    def drop_tl(self):
-        assert False
-        self.solutions = dict((k, s) for k, s in self.solutions.items() if len(s.tl) == 0)
-
-    def drop_test_failed(self):
-        assert False
-        self.solutions = dict((k, s) for k, s in self.solutions.items() if s.meta['status'] == 'PASSED_TESTS')
+        self.is_changed = True
 
     def is_tl_occured(self):
         for solution in self.all_solutions:
@@ -123,7 +112,6 @@ class Project:
 
         return data
 
-
     def sort_labels(self, labels):
         uniq, count = np.unique(labels, return_counts=True)
         data = list(map(lambda x: x[0], sorted(zip(uniq, count), key=lambda e: e[1], reverse=True)))
@@ -146,8 +134,13 @@ class Project:
         return self.tests[testname]['id']
 
     def clusterize(self, count):
+        if count == len(self.clusters):
+            return
+
         labels = clustering.clusterize(self, kmax=count)
         labels = self.sort_labels(labels)
+        self.is_changed = True
+        print("CHANGED!!!!")
         self.clusters = [{
                              'id': e,
                              'name': 'cluster {}'.format(e),
@@ -167,9 +160,7 @@ class Project:
 
     def get_cluster(self, idx):
         return list(map(lambda x: x[0], filter(lambda x: x[1] == idx, zip(self.get_solutions().values(),
-                                                                          self.get_labels(
-
-        )))))
+                                                                          self.get_labels()))))
 
     def get_cluster_info(self, idx):
         return self.clusters[idx]
@@ -188,6 +179,7 @@ class Project:
 
     def update_tests(self, tests):
         new_tests = []
+        self.is_changed = True
         for testname in tests:
             file_md5 = md5(testname)
 
@@ -225,14 +217,19 @@ class Project:
 
     def save(self):
         assert self.output is not None
-        self.output.seek(0)
-        self.output.truncate()
+        file = open(self.output, 'w')
+        file.seek(0)
+        file.truncate()
         json.dump({
+            'is_tl_hidden': self.is_tl_hidden,
+            'is_rt_hidden': self.is_rt_hidden,
+            'is_wa_hidden': self.is_wa_hidden,
             'tests': list(self.tests.values()),
             'solutions': [s.dump() for s in self.all_solutions.values()],
-            'clusters': list(self.clusters.values()),
-        }, self.output, sort_keys=True, indent=4)
-        self.output.flush()
+            'clusters': self.clusters,
+        }, file, sort_keys=True, indent=4)
+        file.flush()
+        file.close()
 
 
 
