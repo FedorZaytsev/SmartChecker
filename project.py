@@ -5,6 +5,7 @@ import numpy as np
 import functools
 import hashlib
 import solution
+import fetch
 
 
 def md5(fname):
@@ -70,7 +71,6 @@ class Project:
         return self.cached_solutions
 
     def drop_cache(self):
-        print("Project cache dropped")
         self.cached_solutions = None
         self.is_changed = True
 
@@ -115,9 +115,7 @@ class Project:
     def sort_labels(self, labels):
         uniq, count = np.unique(labels, return_counts=True)
         data = list(map(lambda x: x[0], sorted(zip(uniq, count), key=lambda e: e[1], reverse=True)))
-        print('data', data)
         labels = [data.index(e) for e in labels]
-        print('labels', labels)
 
         return labels
 
@@ -140,7 +138,6 @@ class Project:
         labels = clustering.clusterize(self, kmax=count)
         labels = self.sort_labels(labels)
         self.is_changed = True
-        print("CHANGED!!!!")
         self.clusters = [{
                              'id': e,
                              'name': 'cluster {}'.format(e),
@@ -217,6 +214,7 @@ class Project:
 
     def save(self):
         assert self.output is not None
+        fetch.is_running.clear()
         file = open(self.output, 'w')
         file.seek(0)
         file.truncate()
@@ -229,6 +227,7 @@ class Project:
             'clusters': self.clusters,
         }, file, sort_keys=True, indent=4)
         file.flush()
+        fetch.is_running.set()
         file.close()
 
 

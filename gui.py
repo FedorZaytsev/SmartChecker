@@ -8,6 +8,7 @@ from tkinter import ttk
 import gui_clusterize
 import gui_fetch
 import gui_empty
+import gui_new_project
 import sys
 
 window = None
@@ -31,6 +32,7 @@ class Window:
         self.data = None
         self.root = None
         self.pages = {
+            'new_project': None,
             'clustering': None,
             'fetch': None,
             'empty': None,
@@ -47,7 +49,7 @@ class Window:
         self.root.resizable(True, True)
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        self.root.rowconfigure(1, weight=1, minsize=80)
+        self.root.rowconfigure(1, weight=0, minsize=80)
 
         menu = tk.Menu(self.root)
         self.filemenu = tk.Menu(menu)
@@ -89,17 +91,31 @@ class Window:
         self.clear_pages()
 
         def set_commands():
+            self.filemenu.entryconfigure(0, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(1, state=tk.ACTIVE)
+            self.filemenu.entryconfigure(2, state=tk.DISABLED)
+            self.filemenu.entryconfigure(3, state=tk.DISABLED)
+            self.projectmenu.entryconfigure(0, state=tk.DISABLED)
+
+        self.pages['new_project'] = gui_new_project.NewProjectPage(self, self.root, set_commands)
+        self.pages['new_project'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
+
+    def show_fetch(self, sources, tests):
+        self.clear_pages()
+
+        def set_commands():
             self.filemenu.entryconfigure(0, state=tk.DISABLED)
             self.filemenu.entryconfigure(1, state=tk.DISABLED)
             self.filemenu.entryconfigure(2, state=tk.ACTIVE)
             self.filemenu.entryconfigure(3, state=tk.ACTIVE)
             self.projectmenu.entryconfigure(0, state=tk.DISABLED)
 
-        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
-        self.pages['fetch'].grid(column=0, row=0, sticky="ew", pady=(80, 0), padx=(100, 100))
+        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands, sources, tests)
+        self.pages['fetch'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
 
-    def open_project(self):
+    def open_project(self, project=None):
         self.clear_pages()
+        self.data = project
 
         def set_commands():
             self.filemenu.entryconfigure(0, state=tk.ACTIVE)
@@ -150,7 +166,7 @@ class Window:
         if file is not None:
             self.data.output = file
 
-        self.data.save(file)
+        self.data.save()
         self.print_log('Saved')
 
     def upgrade(self):
@@ -160,7 +176,9 @@ class Window:
         self.data = None
         for name, page in self.pages.items():
             if page is not None:
-                page.destroy()
+                print("destroying {} {}".format(name, page))
+                page.grid_forget()
+                #page.destroy()
                 self.pages[name] = None
 
     def close_window(self):
@@ -170,7 +188,6 @@ class Window:
                 if messagebox.askyesno("Save?", "Project has been changed. Save?"):
                     self.data.save()
 
-        print("self.data.is_changed", self.data.is_changed)
         sys.stdout.flush()
         self.root.quit()
 

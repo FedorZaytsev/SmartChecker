@@ -28,13 +28,14 @@ def prett_timedelta(td):
 
 
 class FetchPage(tk.Frame):
-    def __init__(self, main, root, callback):
+    def __init__(self, main, root, callback, sources, tests):
         self.main = main
         super().__init__(root)
         self.startTime = datetime.datetime.now()
+        self.sources_folder = sources
+        self.tests_folder = tests
         self.textbox = None
         self.savefile = None
-        self.directory = None
         self.progress_bar = None
         self.progress_test = None
         self.progress_label = None
@@ -47,41 +48,41 @@ class FetchPage(tk.Frame):
         self.init_controls(callback)
 
     def init_controls(self, callback):
-        self.directory = filedialog.askdirectory(title='Choose folder with task')
-        if self.directory == "":
-            return
-
-        self.savefile = filedialog.asksaveasfile(mode='w', title='Choose file to save in')
-        if self.savefile is None:
+        self.savefile = filedialog.asksaveasfilename(title='Choose file to save in')
+        if self.savefile == "":
             return
 
         callback()
 
         self.columnconfigure(0, weight=1)
-        #self.rowconfigure(0, weight=1)
-        #self.rowconfigure(1, weight=1)
-        #self.rowconfigure(2, weight=1)
-        #self.rowconfigure(4, weight=1)
+        self.rowconfigure(0, weight=3)
+        self.rowconfigure(1, weight=0)
+        self.rowconfigure(2, weight=0)
+        self.rowconfigure(3, weight=0)
+        self.rowconfigure(4, weight=0)
+        self.rowconfigure(5, weight=0)
+        self.rowconfigure(6, weight=1)
+        self.rowconfigure(7, weight=3)
 
         self.progress_label = tk.Label(self, text='Processed zero solutions')
-        self.progress_label.grid(row=0, column=0)
+        self.progress_label.grid(row=1, column=0)
 
         self.progress_bar = ttk.Progressbar(self, length=400)
-        self.progress_bar.grid(row=1, column=0, sticky='ew')
+        self.progress_bar.grid(row=2, column=0, sticky='ew')
 
         self.textbox = tk.Label(self, height=2)
-        self.textbox.grid(row=2, column=0, pady=(20, 0))
+        self.textbox.grid(row=3, column=0, pady=(20, 0))
         self.textbox.config(text="Preparing for running tests")
 
         self.progress_test = ttk.Progressbar(self, length=400)
-        self.progress_test.grid(row=3, column=0, sticky='ew')
+        self.progress_test.grid(row=4, column=0, sticky='ew')
 
         self.estimated_time_box = tk.Label(self)
-        self.estimated_time_box.grid(row=4, column=0)
+        self.estimated_time_box.grid(row=5, column=0)
         self.estimated_time_box.config(text="Estimated time: calculating...")
 
         self.pause_btn = tk.Button(self, text='Pause', command=self.fetch_pause)
-        self.pause_btn.grid(row=5, column=0, sticky='e', pady=(20, 0))
+        self.pause_btn.grid(row=6, column=0, sticky='e', pady=(20, 0))
 
         t = threading.Thread(name='fetch.check_folder', target=self.test_task_continue)
         t.start()
@@ -125,11 +126,16 @@ class FetchPage(tk.Frame):
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
         self.main.data = project.Project(output=self.savefile)
-        fetch.check_folder(self.directory, self.step, self.step_test, self.main.print_log, self.main.data)
+        fetch.check_folder(self.sources_folder,
+                           self.tests_folder,
+                           self.step,
+                           self.step_test,
+                           self.main.print_log,
+                           self.main.data)
 
         self.main.data.save()
 
-        self.main.open_project()
+        self.main.open_project(self.main.data)
 
         print("test_task end")
 
