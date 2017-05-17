@@ -46,10 +46,12 @@ class ClusterWindow(tk.Toplevel):
             self.main.clusters.delete(self.idx)
             self.main.clusters.insert(self.idx, "{} ({})".format(val, len(self.data)))
             self.project.clusters[self.idx]['name'] = val
+            self.project.is_changed = True
             return True
 
         def updateDescription(val):
             self.project.clusters[self.idx]['description'] = val
+            self.project.is_changed = True
             return True
 
         fr1 = tk.Frame(self)
