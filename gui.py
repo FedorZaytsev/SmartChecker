@@ -100,7 +100,7 @@ class Window:
         self.pages['new_project'] = gui_new_project.NewProjectPage(self, self.root, set_commands)
         self.pages['new_project'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
 
-    def show_fetch(self, sources, tests):
+    def show_fetch(self, name, sources, tests):
         self.clear_pages()
 
         def set_commands():
@@ -110,7 +110,7 @@ class Window:
             self.filemenu.entryconfigure(3, state=tk.ACTIVE)
             self.projectmenu.entryconfigure(0, state=tk.DISABLED)
 
-        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands, sources, tests)
+        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands, name, sources, tests)
         self.pages['fetch'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
 
     def open_project(self, project=None):

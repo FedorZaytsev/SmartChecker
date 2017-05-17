@@ -27,15 +27,15 @@ def prett_timedelta(td):
     return ':'.join(arr)
 
 
+
 class FetchPage(tk.Frame):
-    def __init__(self, main, root, callback, sources, tests):
+    def __init__(self, main, root, callback, name, sources, tests):
         self.main = main
         super().__init__(root)
         self.startTime = datetime.datetime.now()
         self.sources_folder = sources
         self.tests_folder = tests
         self.textbox = None
-        self.savefile = None
         self.progress_bar = None
         self.progress_test = None
         self.progress_label = None
@@ -45,14 +45,16 @@ class FetchPage(tk.Frame):
         self.curr_timedelta = None
         self.estimated_time_coef = 0.002
         self.current_user_idx = 0
-        self.init_controls(callback)
+        self.init_controls(callback, name)
 
-    def init_controls(self, callback):
-        self.savefile = filedialog.asksaveasfilename(title='Choose file to save in')
-        if self.savefile == "":
+    def init_controls(self, callback, name):
+        savefile = filedialog.asksaveasfilename(title='Choose file to save in')
+        if savefile == "":
             return
 
         callback()
+        self.main.data = project.Project(output=savefile)
+        self.main.data.name = name
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=3)
@@ -125,7 +127,6 @@ class FetchPage(tk.Frame):
 
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
-        self.main.data = project.Project(output=self.savefile)
         fetch.check_folder(self.sources_folder,
                            self.tests_folder,
                            self.step,
@@ -134,6 +135,12 @@ class FetchPage(tk.Frame):
                            self.main.data)
 
         self.main.data.save()
+
+        try:
+            diff_time = str(datetime.datetime.now() - self.startTime).split('.')[0]
+        except:
+            diff_time = str(datetime.datetime.now() - self.startTime)
+        self.main.print_log("Fetchong done in {}".format(diff_time))
 
         self.main.open_project(self.main.data)
 
