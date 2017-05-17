@@ -4,6 +4,7 @@ import threading
 import clustering
 import traceback
 import tkinter as tk
+import ListboxEx
 import tkinter.filedialog as filedialog
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -87,18 +88,11 @@ class ClusterizePage(tk.Frame):
             self.textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
         self.textedit_clusters.pack(side=tk.RIGHT)
 
-        fr_cluster = tk.Frame(self.frame_clusters)
-        fr_cluster.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
-        self.clusters = tk.Listbox(fr_cluster)
-        self.clusters.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.clusters = ListboxEx.ListboxEx(self.frame_clusters)
+        self.clusters.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
         self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
         self.clusters.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
 
-        self.vbar = tk.Scrollbar(fr_cluster)
-        self.vbar.config(command=self.clusters.yview)
-        self.vbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.clusters.config(yscrollcommand=self.vbar.set)
 
     def change_flags(self, **kwargs):
         self.main.data.change_hidden_flags(**kwargs)
