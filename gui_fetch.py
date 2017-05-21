@@ -29,12 +29,10 @@ def prett_timedelta(td):
 
 
 class FetchPage(tk.Frame):
-    def __init__(self, main, root, callback, name, sources, tests):
+    def __init__(self, main, root, callback):
         self.main = main
         super().__init__(root)
         self.startTime = datetime.datetime.now()
-        self.sources_folder = sources
-        self.tests_folder = tests
         self.textbox = None
         self.progress_bar = None
         self.progress_test = None
@@ -45,16 +43,16 @@ class FetchPage(tk.Frame):
         self.curr_timedelta = None
         self.estimated_time_coef = 0.002
         self.current_user_idx = 0
-        self.init_controls(callback, name)
+        self.init_controls(callback)
 
-    def init_controls(self, callback, name):
-        savefile = filedialog.asksaveasfilename(title='Choose file to save in')
-        if savefile == "":
-            return
+    def init_controls(self, callback):
+        if self.main.data.output is None:
+            savefile = filedialog.asksaveasfilename(title='Choose file to save in')
+            if savefile == "":
+                return
+            self.main.data.output = savefile
 
         callback()
-        self.main.data = project.Project(output=savefile)
-        self.main.data.name = name
 
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=3)
@@ -83,7 +81,7 @@ class FetchPage(tk.Frame):
         self.estimated_time_box.grid(row=5, column=0)
         self.estimated_time_box.config(text="Estimated time: calculating...")
 
-        self.pause_btn = tk.Button(self, text='Pause', command=self.fetch_pause)
+        self.pause_btn = tk.Button(self, text='Stop', command=self.fetch_stop)
         self.pause_btn.grid(row=6, column=0, sticky='e', pady=(20, 0))
 
         t = threading.Thread(name='fetch.check_folder', target=self.test_task_continue)
@@ -127,12 +125,7 @@ class FetchPage(tk.Frame):
 
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
-        fetch.check_folder(self.sources_folder,
-                           self.tests_folder,
-                           self.step,
-                           self.step_test,
-                           self.main.print_log,
-                           self.main.data)
+        fetch.check_folder(self.step, self.step_test, self.main.print_log, self.main.data)
 
         self.main.data.save()
 
@@ -146,10 +139,7 @@ class FetchPage(tk.Frame):
 
         print("test_task end")
 
-    def fetch_pause(self):
-        if fetch.is_running.is_set():
-            fetch.is_running.clear()
-            self.pause_btn.config(text='Continue')
-        else:
-            fetch.is_running.set()
-            self.pause_btn.config(text='Pause')
+    def fetch_stop(self):
+        fetch.stop_flag.set()
+        self.pause_btn.config(text='Wait for completion')
+        self.pause_btn.config(state="disabled")

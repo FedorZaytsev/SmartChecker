@@ -7,6 +7,7 @@ import tempfile
 
 
 is_running = threading.Event()
+stop_flag = threading.Event()
 
 
 def list_files(dir):
@@ -45,25 +46,34 @@ def filter_sources(sources):
 
 
 def get_tests(testsfolder):
-    lst = list(filter(lambda name: name[-2:] != '.a', list_files(testsfolder)))
+    files = list(filter(lambda name: name[-2:] != '.a', list_files(testsfolder)))
+
+    lst = []
+    for file in files:
+        try:
+            int(os.path.basename(file))
+        except ValueError:
+            pass
+        else:
+            lst.append(file)
 
     return sorted(lst, key=lambda x: int(os.path.basename(x)))
 
 
-def call_process(command, timeout, input='/dev/null', output=False, error=False):
-    assert type(command) is str
+def call_process(cmd, timeout=10, input='/dev/null', output=False, error=False):
+    assert cmd != ''
 
     curr = os.getcwd()
     stdout = os.path.join(curr, 'stdout')
     stderr = os.path.join(curr, 'stderr')
-    command = '{} {} {} < {} 1>"{}" 2>"{}"'.format(config['tests']['timeout_prog'], timeout, command, input, stdout,
-                                                  stderr)
+
+    command = '{} {} {} < {} 1>"{}" 2>"{}"'.format(config['tests']['timeout_prog'], timeout, cmd, input, stdout,
+                                                   stderr)
 
     #print('call_process', command)
 
     rc = os.system(command)
 
-    #print('return code', rc)
     return_code = (rc >> 8) & 0xff
 
     if return_code == 124:  #gtimeout TIMEOUT status
@@ -88,14 +98,15 @@ def call_process(command, timeout, input='/dev/null', output=False, error=False)
 def compile_source(file, output_path):
     opts = config['compiler']
 
-    cmd = '{} {} -o "{}" "{}"'.format(opts['name'], opts['options'], output_path, file['file'])
-    params = list(filter(len, opts['options'].split(' ')))
-    command = [opts['name'], *params, '-o', output_path, file['file']]
-    print('compiling', command)
+    cmd = '{} {} -o "{}" "{}" '.format(opts['name'], opts['options'], output_path, file['file'])
+
+    #params = list(filter(len, opts['options'].split(' ')))
+    #command = [opts['name'], *params, '-o', output_path, file['file']]
+    #print('compiling', command)
 
     output = ''
     try:
-        output = call_process(cmd, timeout=30, output=True)
+        output = call_process(cmd=cmd, timeout=30, output=True)
         #rc = os.system(cmd)
         #if rc != 0:
         #    raise subprocess.CalledProcessError(rc, cmd)
@@ -111,20 +122,25 @@ def compile_source(file, output_path):
 
 def parse_time(text):
     def time2ms(time):
-        #m = int(time[:time.find('m')])
-        #s = float(time[time.find('m')+1:-1])
+        m = int(time[:time.find('m')])
+        s = float(time[time.find('m')+1:-1])
 
-        #return m*60*1000+s*1000
-        return float(time)*1000
+        return m*60*1000+s*1000
+        #return float(time)*1000
 
     #text = text.decode("utf-8", "ignore")
 
     result = {}
-    #print('text', text)
+    #print('parse_time', text)
     for el in filter(len, text.split('\n')):
         if el.find("Segmentation fault") != -1 or el.find("Abort") != -1:
             raise subprocess.CalledProcessError(output=el, cmd='time', returncode=1)
-        els = list(filter(len, el.split(' ')))
+        els = list(filter(len, el.split('\t')))
+
+        #for name in ['real', 'user', 'sys']:
+        #    if name in els:
+        #        result[name] = time2ms(els[els.index(name)-1])
+
         if len(els) == 2:
             try:
                 result[els[0]] = time2ms(els[1])
@@ -140,10 +156,13 @@ def parse_time(text):
 def run_test(path, program_name, test):
     filepath = os.path.join(path, program_name)
 
-    cmd = 'time -p "{}"'.format(filepath)
-    command = ['time', '-p', filepath]
+    cmd = '/bin/bash -c \'time "{}"\''.format(filepath)
+    #command = ['time', filepath]
 
-    error = call_process(cmd, timeout=config['tests'].getfloat('timeout'), input=test['name'], error=True)
+    #def format_cmd(stdio, stdout, stderr):
+    #    return '/bin/bash -c \'time "{}" <"{}"\' 1>"{}" 2>"{}"'.format(filepath, stdio, stdout, stderr)
+
+    error = call_process(cmd, timeout=config['tests'].getfloat('timeout'), input=test.name, error=True)
 
     #print('run_test', error)
 
@@ -181,7 +200,7 @@ def run_tests(solution, tests, outputfolder, gui_checker_test, gui_error):
                 break
             except subprocess.CalledProcessError as error:
                 print("Error while running program with name {} on test {}. Code {}"
-                      .format(solution.filepath, test['name'], error.returncode))
+                      .format(solution.filepath, test, error.returncode))
                 if not runtime:
                     gui_error("Runtime error for {}".format(solution.filepath))
                 runtime = True
@@ -199,7 +218,7 @@ def run_tests(solution, tests, outputfolder, gui_checker_test, gui_error):
 
 
 def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, proj):
-    outputfolder = tempfile.gettempdir()
+    outputfolder = config['tests']['temporary_folder']
 
     for idx, source in enumerate(sources):
         print("Running {} of {}".format(idx, len(sources)))
@@ -215,7 +234,14 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, pr
 
         run_tests(solution, tests, outputfolder, gui_checker_test, gui_error)
 
-        os.remove(output_path)
+        if stop_flag.is_set():
+            stop_flag.clear()
+            return
+
+        try:
+            os.remove(output_path)
+        except FileNotFoundError:
+            pass
 
         if idx != 0 and idx % 100 == 0:
             gui_error("Storing data....")
@@ -223,48 +249,23 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, pr
             gui_error("Done")
 
 
-def check_folder(sources_folder, tests_folder, gui_checker, gui_checker_test, gui_error, proj):
-    print("Taking sources from {}, tests from {}".format(sources_folder, tests_folder))
-    gui_error("Taking sources from {}, tests from {}".format(sources_folder, tests_folder))
-    sources = get_sources(sources_folder)
-    tests = get_tests(tests_folder)
-    tests = proj.update_tests(tests)
-    is_running.set()
+def check_folder(gui_checker, gui_checker_test, gui_error, proj):
+    print("Taking sources from {}, tests from {}".format(proj.sources_path, proj.tests_path))
+    gui_error("Taking sources from {}, tests from {}".format(proj.sources_path, proj.tests_path))
 
+    sources = get_sources(proj.sources_path)
     sources = filter_sources(sources)
-    progress_counter = len(sources) * len(tests)
+    sources = proj.update_sources(sources)
+
+    tests = get_tests(proj.tests_path)
+    tests = proj.update_tests(tests)
+
+    progress_counter = len(proj.get_sources()) * len(tests) + len(sources) * len(proj.tests.keys())
     gui_checker_test_l = lambda idx, count: gui_checker_test(idx, count, progress_counter)
-    process_sources(sources, tests, gui_checker, gui_checker_test_l, gui_error, proj)
 
+    is_running.set()
+    if len(tests) > 0:
+        process_sources(proj.get_sources(), tests, gui_checker, gui_checker_test_l, gui_error, proj)
 
-def get_new_sources(project, sources):
-    new = []
-
-    old = list(map(lambda x: x['name']['filename'], project.data))
-
-    for source in sources:
-        splitted = os.path.split(source)
-        if len(splitted) > 1:
-            filename = splitted[1]
-            if filename not in old:
-                new.append(source)
-
-    return new
-
-
-def upgrade(folder, gui_checker, gui_checker_test, gui_error, project):
-    print("upgrading tests from folder {}".format(folder))
-    sources = get_sources(os.path.join(folder, 'sources'))
-    outputfolder = os.path.join(folder, "executables")
-    tests = get_tests(os.path.join(folder, 'tests'))
-
-    if not os.path.exists(outputfolder):
-        os.makedirs(outputfolder)
-
-    new_sources = get_new_sources(project, sources)
-
-    sources = filter_sources(new_sources)
-    result = process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, outputfolder, folder)
-
-    return generate_project(result, folder, tests)
-
+    if len(sources) > 0:
+        process_sources(sources, proj.tests.values(), gui_checker, gui_checker_test_l, gui_error, proj)

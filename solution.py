@@ -39,7 +39,7 @@ class Solution:
             self.tl = obj['tests']['tl']
 
     def set_test(self, test, time=None, timeout=None, runtime=None):
-        test_id = self.project.get_test_id(test['name'])
+        test_id = self.project.get_test_id(test.name)
 
         if timeout is not None:
             self.tl.append(test_id)
@@ -65,6 +65,14 @@ class Solution:
                 'rt': self.rt,
             }
         }
+
+    def get_source(self):
+        return {
+            'file': self.filepath,
+            'filename': self.filename,
+            'meta': self.meta,
+        }
+
 
     def __repr__(self):
         return json.dumps(self.dump(), indent=2, sort_keys=True)

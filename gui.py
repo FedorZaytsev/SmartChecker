@@ -3,6 +3,7 @@ import tkinter.font as font
 import tkinter.scrolledtext as scrolledtext
 import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
+import os
 from tkinter import ttk
 
 import gui_clusterize
@@ -100,8 +101,10 @@ class Window:
         self.pages['new_project'] = gui_new_project.NewProjectPage(self, self.root, set_commands)
         self.pages['new_project'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
 
-    def show_fetch(self, name, sources, tests):
+    def show_fetch(self, data=None):
         self.clear_pages()
+
+        self.data = data
 
         def set_commands():
             self.filemenu.entryconfigure(0, state=tk.DISABLED)
@@ -110,7 +113,7 @@ class Window:
             self.filemenu.entryconfigure(3, state=tk.ACTIVE)
             self.projectmenu.entryconfigure(0, state=tk.DISABLED)
 
-        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands, name, sources, tests)
+        self.pages['fetch'] = gui_fetch.FetchPage(self, self.root, set_commands)
         self.pages['fetch'].grid(column=0, row=0, sticky="nsew", pady=(0, 0), padx=(100, 100))
 
     def open_project(self, project=None):
@@ -170,7 +173,7 @@ class Window:
         self.print_log('Saved')
 
     def upgrade(self):
-        pass
+        self.show_fetch(self.data)
 
     def clear_pages(self):
         self.data = None
@@ -178,7 +181,6 @@ class Window:
             if page is not None:
                 print("destroying {} {}".format(name, page))
                 page.grid_forget()
-                #page.destroy()
                 self.pages[name] = None
 
     def close_window(self):

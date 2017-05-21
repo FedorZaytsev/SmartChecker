@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.font as font
 import FileChooseLine
 import os
+import project
 
 
 class NewProjectPage(tk.Frame):
@@ -51,9 +52,13 @@ class NewProjectPage(tk.Frame):
 
         self.button = tk.Button(self, text='Start', command=self.start)
         self.button.grid(column=0, row=4, sticky='se')
+        self.main.print_log("Creating new project")
 
     def start(self):
-
-        self.main.show_fetch(self.name.get(), self.sources.get(), self.tests.get())
+        self.main.data = project.Project()
+        self.main.data.sources_path = self.sources.get()
+        self.main.data.tests_path = self.tests.get()
+        self.main.data.name = self.name.get()
+        self.main.show_fetch(self.main.data)
         #self.main.root.after(1, lambda: self.main.show_fetch(self.sources.get(), self.tests.get()))
 

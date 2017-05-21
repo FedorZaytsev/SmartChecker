@@ -42,9 +42,14 @@ class ClusterWindow(tk.Toplevel):
 
     def init_controls(self):
         def updateName(val):
+            print("updateName", val)
             self.title(val)
-            self.main.clusters.delete(self.idx)
-            self.main.clusters.insert(self.idx, "{} ({})".format(val, len(self.data)))
+            self.main.clusters.insert(self.idx+1, "{} ({})".format(val, len(self.data)))
+            self.main.clusters.delete(self.idx+2)
+            #self.main.clusters.update()
+            #self.after(100, lambda: self.main.clusters.selection_set(self.idx+1))
+            self.main.clusters.selection_set(self.idx+1)
+            #self.main.clusters.insert(self.idx, "{} ({})".format(val, len(self.data)))
             self.project.clusters[self.idx]['name'] = val
             self.project.is_changed = True
             return True
@@ -54,8 +59,17 @@ class ClusterWindow(tk.Toplevel):
             self.project.is_changed = True
             return True
 
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+
         fr1 = tk.Frame(self)
-        fr1.grid(row=0, column=0, padx=(60, 0))
+        fr1.columnconfigure(0, weight=1)
+        fr1.columnconfigure(1, weight=1)
+        fr1.rowconfigure(0, weight=0)
+        fr1.rowconfigure(1, weight=0)
+        fr1.rowconfigure(2, weight=1)
+        fr1.grid(row=0, column=0, padx=(60, 0), pady=(25, 25), sticky='nsew')
         label_name = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Name:')
         label_name.grid(row=0, column=0, sticky='e')
 
@@ -76,7 +90,7 @@ class ClusterWindow(tk.Toplevel):
         self.solutions.grid(row=2, column=0, columnspan=2, sticky='nsew')
 
         self.plot_frame = tk.Frame(self)
-        self.plot_frame.grid(row=0, column=2)
+        self.plot_frame.grid(row=0, column=1, pady=(0, 25), sticky='nsew')
 
         self.show_plot(self.plot_frame, 0)
         self.update()

@@ -45,6 +45,8 @@ class ClusterizePage(tk.Frame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1, minsize=200)
 
+        self.bind("<Button-1>", lambda e: print(e))
+
         dimentions = self.main.data.get_dimentions()
         print("dimentions {}...".format(dimentions[:3]))
 
@@ -54,7 +56,7 @@ class ClusterizePage(tk.Frame):
         self.frame_clusters.grid(row=0, column=1, sticky='nsew', pady=(40, 0))
         self.frame_clusters.rowconfigure(2, weight=0)
         self.frame_clusters.rowconfigure(3, weight=1)
-        #self.frame_clusters.rowconfigure(4, weight=1)
+        self.frame_clusters.rowconfigure(4, weight=0)
 
         fr1 = tk.Frame(self.frame_clusters)
         fr1.grid(column=0, row=0)
@@ -82,17 +84,27 @@ class ClusterizePage(tk.Frame):
         button_start.pack(side=tk.RIGHT)
         self.textedit_clusters = tk.Entry(fr_btn, exportselection=0, validate='key',
                                      validatecommand=(self.frame_clusters.register(is_number), '%P'))
-        if len(self.main.data.clusters) == 0:
-            self.textedit_clusters.insert(tk.END, "1")
-        else:
-            self.textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
         self.textedit_clusters.pack(side=tk.RIGHT)
 
         self.clusters = ListboxEx.ListboxEx(self.frame_clusters)
-        self.clusters.grid(column=0, row=3, sticky='nsew', pady=(0, 20))
+        self.clusters.grid(column=0, row=3, sticky='nsew')
         self.clusters.bind('<Double-Button-1>', lambda e: self.on_solution_clicked())
         self.clusters.bind('<<ListboxSelect>>', lambda e: self.on_solution_selected_fake())
 
+        self.details = tk.Button(self.frame_clusters, text='Details', state='disabled', command=lambda:self.on_details())
+        self.details.grid(column=0, row=4, sticky='e', pady=(0, 20))
+
+    def on_details(self):
+        if len(self.clusters.curselection()) == 0:
+            return
+        if self.clusters.curselection()[0] == 0:
+            if messagebox.askyesno(title='Are you sure?', message='Are you sure to clear all cluster information?'):
+                for cluster in self.main.data.clusters:
+                    cluster['name'] = 'cluster {}'.format(cluster['id'])
+                    cluster['description'] = ''
+                self.fill_clusters()
+        else:
+            self.on_solution_clicked()
 
     def change_flags(self, **kwargs):
         self.main.data.change_hidden_flags(**kwargs)
@@ -129,9 +141,11 @@ class ClusterizePage(tk.Frame):
     def load_from_project(self):
         print("Loaded {} elements".format(self.main.data.size()))
         self.init_controls()
-        if len(self.main.data.clusters) == 0:
+        if len(self.main.data.clusters) == 0 and self.main.data.size() > 0:
+            self.textedit_clusters.insert(tk.END, "1")
             self.clusterize(1)
         else:
+            self.textedit_clusters.insert(tk.END, str(len(self.main.data.clusters)))
             self.redraw_plot()
 
         print("loaded")
@@ -164,10 +178,11 @@ class ClusterizePage(tk.Frame):
             a.scatter(xs=time[dimensions[0]['i']-off], ys=time[dimensions[1]['i']-off], zs=time[dimensions[2]['i']-off],
                       c=colors[idx], marker='o', s=16, alpha=self.mask[idx])
 
+        a.view_init(azim=90+45)
         a.set_title('')
-        a.set_xlabel('Test {}'.format(dimensions[0]['i']))
-        a.set_ylabel('Test {}'.format(dimensions[1]['i']))
-        a.set_zlabel('Test {}'.format(dimensions[2]['i']))
+        a.set_xlabel('Test {} in ms'.format(dimensions[0]['i']))
+        a.set_ylabel('Test {} in ms'.format(dimensions[1]['i']))
+        a.set_zlabel('Test {} in ms'.format(dimensions[2]['i']))
 
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
@@ -196,6 +211,7 @@ class ClusterizePage(tk.Frame):
         self.draw_space()
 
     def on_solution_selected_fake(self):
+        print('on_solution_selected_fake')
         self.after(200, lambda: self.is_solo_click())
 
     def is_solo_click(self):
@@ -203,12 +219,18 @@ class ClusterizePage(tk.Frame):
             self.on_solution_selected()
 
     def on_solution_selected(self):
+        print('on_solution_selected', len(self.clusters.curselection()))
         if len(self.clusters.curselection()) == 0:
             return
 
-        idx = self.clusters.curselection()[0]
-        self.mask = [config['view'].getfloat('alpha_select') for i in range(len(self.mask))]
-        self.mask[idx] = 1
+        idx = self.clusters.curselection()[0] - 1
+        if idx == -1:
+            self.mask = [1 for i in range(len(self.mask))]
+            self.details.configure(state='active', text='Clear descriptions')
+        else:
+            self.mask = [config['view'].getfloat('alpha_select') for i in range(len(self.mask))]
+            self.mask[idx] = 1
+            self.details.configure(state='active', text='Details')
         self.draw_space()
 
     def fill_clusters(self):
@@ -216,6 +238,7 @@ class ClusterizePage(tk.Frame):
         if self.clusters.size() > 0:
             self.clusters.delete(0, self.clusters.size()-1)
 
+        self.clusters.insert(tk.END, 'Show all clusters')
         for cluster in self.main.data.clusters:
             self.clusters.insert(tk.END, '{} ({})'.format(cluster['name'], len(cluster['elements'])))
 
@@ -223,10 +246,13 @@ class ClusterizePage(tk.Frame):
         self.cluster_views[idx] = None
 
     def on_solution_clicked(self):
+        print('on_solution_clicked')
         self.doubleClickTime = time.clock()
         if len(self.clusters.curselection()) == 0:
             return
-        idx = self.clusters.curselection()[0]
+        idx = self.clusters.curselection()[0] - 1
+        if idx == -1:
+            return
 
         if self.cluster_views[idx] is not None:
             self.cluster_views[idx].lift()
