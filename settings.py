@@ -11,14 +11,17 @@ options = -O3
 
 [tests]
 timeout_prog = gtimeout
-#Количество вызовов программы для одного теста
+#temporary_folder should contains file in a period until system reboot. Programs stast several times after compilation
+#thats why we cannot use /tmp folder, which do not guaratee that file will not suddenly disappear.
+temporary_folder = /var/tmp
+#Count of test runs for one test file and one solution
 count = 10
-timeout = 2
+timeout = 1
 force_run_after_timeout = True
 
 [view]
 editor_cmd = subl
-alpha_select = 0.02
+alpha_select = 0.0
 """
 
 def check_settings():
