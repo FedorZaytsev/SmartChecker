@@ -15,7 +15,8 @@ class Project:
         self.name = 'NO NAME'
         self.cached_solutions = None
         self.skip_count = 0
-        self.clusters = []
+        self.clusters = {}
+        self.cluster_size = 0
         self.dimentions = None
         self.output = None
         self.is_tl_hidden = True
@@ -33,6 +34,7 @@ class Project:
             self.is_tl_hidden = data.get('is_tl_hidden', True)
             self.is_rt_hidden = data.get('is_rt_hidden', True)
             self.is_wa_hidden = data.get('is_wa_hidden', True)
+            self.cluster_size = data.get('cluster_size', 0)
             self.name = data.get('name', 'NO NAME')
             self.sources_path = data.get('sources_path',
                                          os.path.split(list(self.all_solutions.values())[0].filepath)[0])
@@ -76,6 +78,19 @@ class Project:
         self.cached_solutions = None
         self.is_changed = True
 
+    def current_cluster_name(self, count=None):
+        if count is None:
+            count = self.cluster_size
+        return "{}_{}_{}_{}".format(self.is_rt_hidden, self.is_wa_hidden, self.is_tl_hidden, count)
+
+    def update_current_cluster_name(self, count):
+        self.cluster_size = count
+
+    def get_clusters(self):
+        if self.cluster_size == 0:
+            return []
+        return self.clusters[self.current_cluster_name()]
+
     def is_tl_occured(self):
         for solution in self.all_solutions:
             if len(solution.tl) > 0:
@@ -92,9 +107,7 @@ class Project:
         return len(list(self.get_solutions().values()))
 
     def cluster_count(self):
-        if len(self.clusters) == 0:
-            return 1
-        return len(self.clusters)
+        return max(len(self.get_clusters()), 1)
 
     def calculate_dimentions(self):
         def default(val):
@@ -134,24 +147,31 @@ class Project:
         return self.tests[testname].id
 
     def clusterize(self, count):
-        if count == len(self.clusters):
+        #if count == len(self.clusters):
+        #    return
+        if self.current_cluster_name(count) in self.clusters:
+            self.update_current_cluster_name(count)
+            self.is_changed = True
             return
 
+
+        self.update_current_cluster_name(count)
         labels = clustering.clusterize(self, kmax=count)
         labels = self.sort_labels(labels)
         self.is_changed = True
-        self.clusters = [{
+        cluster_name = self.current_cluster_name()
+        self.clusters[cluster_name] = [{
                              'id': e,
                              'name': 'cluster {}'.format(e),
                              'description': '',
                              'elements': [],
                          } for e in range(max(labels)+1)]
         for idx, label in enumerate(labels):
-            self.clusters[label]['elements'].append(idx)
+            self.clusters[cluster_name][label]['elements'].append(idx)
 
     def get_labels(self):
         labels = [0 for i in range(len(self.get_times()))]
-        for cluster in self.clusters:
+        for cluster in self.get_clusters():
             for idx in cluster['elements']:
                 labels[idx] = cluster['id']
 
@@ -162,7 +182,7 @@ class Project:
                                                                           self.get_labels()))))
 
     def get_cluster_info(self, idx):
-        return self.clusters[idx]
+        return self.get_clusters()[idx]
 
     def get_count_tests(self):
         return len(list(self.tests))
@@ -234,6 +254,7 @@ class Project:
             'is_tl_hidden': self.is_tl_hidden,
             'is_rt_hidden': self.is_rt_hidden,
             'is_wa_hidden': self.is_wa_hidden,
+            'cluster_size': self.cluster_size,
             'tests': [t.dump() for t in self.tests.values()],
             'solutions': [s.dump() for s in self.all_solutions.values()],
             'clusters': self.clusters,

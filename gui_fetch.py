@@ -126,6 +126,7 @@ class FetchPage(tk.Frame):
     def test_task_continue(self):
         self.startTime = datetime.datetime.now()
         fetch.check_folder(self.step, self.step_test, self.main.print_log, self.main.data)
+        self.main.data.clusterize(1)
 
         self.main.data.save()
 

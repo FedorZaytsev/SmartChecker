@@ -10,6 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import figure
 import tkinter.scrolledtext as scrolledtext
+import gui_clusterize
 
 
 class ClusterWindow(tk.Toplevel):
@@ -42,21 +43,20 @@ class ClusterWindow(tk.Toplevel):
 
     def init_controls(self):
         def updateName(val):
-            print("updateName", val)
             self.title(val)
-            self.main.clusters.insert(self.idx+1, "{} ({})".format(val, len(self.data)))
-            self.main.clusters.delete(self.idx+2)
-            #self.main.clusters.update()
-            #self.after(100, lambda: self.main.clusters.selection_set(self.idx+1))
-            self.main.clusters.selection_set(self.idx+1)
-            #self.main.clusters.insert(self.idx, "{} ({})".format(val, len(self.data)))
-            self.project.clusters[self.idx]['name'] = val
+            self.cluster_info['name'] = val
             self.project.is_changed = True
+            self.main.clusters.insert(self.idx+1, gui_clusterize.ClusterizePage.get_cluster_name(self.cluster_info))
+            self.main.clusters.delete(self.idx+2)
+            self.main.clusters.selection_set(self.idx+1)
             return True
 
         def updateDescription(val):
-            self.project.clusters[self.idx]['description'] = val
+            self.cluster_info['description'] = val
             self.project.is_changed = True
+            self.main.clusters.insert(self.idx+1, gui_clusterize.ClusterizePage.get_cluster_name(self.cluster_info))
+            self.main.clusters.delete(self.idx+2)
+            self.main.clusters.selection_set(self.idx+1)
             return True
 
         self.columnconfigure(0, weight=1)
@@ -88,6 +88,9 @@ class ClusterWindow(tk.Toplevel):
 
         self.solutions = ListboxEx.ListboxEx(fr1, height=15)
         self.solutions.grid(row=2, column=0, columnspan=2, sticky='nsew')
+
+        open_btn = tk.Button(fr1, text='Open', command=lambda: self.on_solution_clicked())
+        open_btn.grid(row=3, column=1, sticky='e')
 
         self.plot_frame = tk.Frame(self)
         self.plot_frame.grid(row=0, column=1, pady=(0, 25), sticky='nsew')
