@@ -46,12 +46,6 @@ class FetchPage(tk.Frame):
         self.init_controls(callback)
 
     def init_controls(self, callback):
-        if self.main.data.output is None:
-            savefile = filedialog.asksaveasfilename(title='Choose file to save in')
-            if savefile == "":
-                return
-            self.main.data.output = savefile
-
         callback()
 
         self.columnconfigure(0, weight=1)
@@ -97,7 +91,7 @@ class FetchPage(tk.Frame):
     def step(self, idx, size, name):
         self.current_user_idx = idx
         self.progress_bar['value'] = idx
-        self.progress_bar['maximum'] = size-1
+        self.progress_bar['maximum'] = size
         self.textbox.config(text="Testing {}".format(self.shorten_path(os.path.basename(name['file']))))
         self.progress_label.config(text="Processed {} of {}".format(idx + 1, size))
 
@@ -127,8 +121,6 @@ class FetchPage(tk.Frame):
         self.startTime = datetime.datetime.now()
         fetch.check_folder(self.step, self.step_test, self.main.print_log, self.main.data)
         self.main.data.clusterize(1)
-
-        self.main.data.save()
 
         try:
             diff_time = str(datetime.datetime.now() - self.startTime).split('.')[0]

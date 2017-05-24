@@ -243,11 +243,6 @@ def process_sources(sources, tests, gui_checker, gui_checker_test, gui_error, pr
         except FileNotFoundError:
             pass
 
-        if idx != 0 and idx % 100 == 0:
-            gui_error("Storing data....")
-            proj.save()
-            gui_error("Done")
-
 
 def check_folder(gui_checker, gui_checker_test, gui_error, proj):
     print("Taking sources from {}, tests from {}".format(proj.sources_path, proj.tests_path))

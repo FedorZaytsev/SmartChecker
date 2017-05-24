@@ -56,7 +56,7 @@ class Window:
         self.filemenu = tk.Menu(menu)
         self.filemenu.add_command(label='New project', command=self.new_project)
         self.filemenu.add_command(label='Open project', command=self.open_project)
-        self.filemenu.add_command(label='Save', command=lambda: self.save_project(None), state=tk.DISABLED)
+        self.filemenu.add_command(label='Save', command=self.save_project, state=tk.DISABLED)
         self.filemenu.add_command(label='Save as', command=self.save_project_as, state=tk.DISABLED)
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Exit", command=self.close_window)
@@ -157,17 +157,21 @@ class Window:
         return loading
 
     def save_project_as(self):
-        file = filedialog.asksaveasfile(mode='w')
+        filename = filedialog.asksaveasfilename()
 
-        if file is None:
+        if filename == '':
             return
 
-        self.save_project(file)
+        self.save_project(filename)
 
-    def save_project(self, file):
+    def save_project(self, filename=''):
 
-        if file is not None:
-            self.data.output = file
+        if filename != '':
+            self.data.output = filename
+
+        if self.data.output is None:
+            self.save_project_as()
+            return
 
         self.data.save()
         self.print_log('Saved')
@@ -184,11 +188,10 @@ class Window:
                 self.pages[name] = None
 
     def close_window(self):
-        print('close_window')
         if self.data is not None:
             if self.data.is_changed:
                 if messagebox.askyesno("Save?", "Project has been changed. Save?"):
-                    self.data.save()
+                    self.save_project()
 
         sys.stdout.flush()
         self.root.quit()
