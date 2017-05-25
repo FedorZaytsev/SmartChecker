@@ -33,7 +33,7 @@ class ClusterWindow(tk.Toplevel):
             self.y_max = max(self.y_max, max(solution.times))
 
         self.init_controls()
-        self.title(self.cluster_info['name'])
+        self.title(self.cluster_info.name)
 
         self.protocol("WM_DELETE_WINDOW", self.on_destroy)
 
@@ -44,7 +44,7 @@ class ClusterWindow(tk.Toplevel):
     def init_controls(self):
         def updateName(val):
             self.title(val)
-            self.cluster_info['name'] = val
+            self.cluster_info.name = val
             self.project.is_changed = True
             self.main.clusters.insert(self.idx+1, gui_clusterize.ClusterizePage.get_cluster_name(self.cluster_info))
             self.main.clusters.delete(self.idx+2)
@@ -52,7 +52,7 @@ class ClusterWindow(tk.Toplevel):
             return True
 
         def updateDescription(val):
-            self.cluster_info['description'] = val
+            self.cluster_info.description = val
             self.project.is_changed = True
             self.main.clusters.insert(self.idx+1, gui_clusterize.ClusterizePage.get_cluster_name(self.cluster_info))
             self.main.clusters.delete(self.idx+2)
@@ -75,7 +75,7 @@ class ClusterWindow(tk.Toplevel):
 
         name_input = tk.Entry(fr1, exportselection=0, validate='key',
                                      validatecommand=(self.register(updateName), '%P'))
-        name_input.insert(tk.END, self.cluster_info['name'])
+        name_input.insert(tk.END, self.cluster_info.name)
         name_input.grid(row=0, column=1)
 
         label_description = tk.Label(fr1, font=font.Font(family='Helvetica', size=14), text='Description:')
@@ -83,7 +83,7 @@ class ClusterWindow(tk.Toplevel):
 
         desc_input = tk.Entry(fr1, exportselection=0, validate='key',
                                      validatecommand=(self.register(updateDescription), '%P'))
-        desc_input.insert(tk.END, self.cluster_info['description'])
+        desc_input.insert(tk.END, self.cluster_info.description)
         desc_input.grid(row=1, column=1)
 
         self.solutions = ListboxEx.ListboxEx(fr1, height=15)

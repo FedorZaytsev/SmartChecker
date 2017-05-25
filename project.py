@@ -5,7 +5,8 @@ import numpy as np
 import solution
 import fetch
 import os
-import test as test_f
+import test as testf
+import cluster
 
 
 class Project:
@@ -28,9 +29,11 @@ class Project:
 
         if 'file' in kwargs:
             data = json.load(kwargs['file'])
-            self.clusters = data['clusters']
+            self.clusters = dict(
+                (key, [cluster.Cluster(obj=c) for c in data['clusters'][key]]) for key in data['clusters']
+            )
             self.all_solutions = dict((e['name']['file'], solution.Solution(self, obj=e)) for e in data['solutions'])
-            self.tests = dict((e['name'], test_f.Test(obj=e)) for e in data['tests'])
+            self.tests = dict((e['name'], testf.Test(obj=e)) for e in data['tests'])
             self.is_tl_hidden = data.get('is_tl_hidden', True)
             self.is_rt_hidden = data.get('is_rt_hidden', True)
             self.is_wa_hidden = data.get('is_wa_hidden', True)
@@ -147,33 +150,32 @@ class Project:
         return self.tests[testname].id
 
     def clusterize(self, count):
-        #if count == len(self.clusters):
-        #    return
         if self.current_cluster_name(count) in self.clusters:
             self.update_current_cluster_name(count)
             self.is_changed = True
             return
 
-
         self.update_current_cluster_name(count)
-        labels = clustering.clusterize(self, kmax=count)
+        labels, centers = clustering.clusterize(self, kmax=count)
         labels = self.sort_labels(labels)
         self.is_changed = True
         cluster_name = self.current_cluster_name()
-        self.clusters[cluster_name] = [{
-                             'id': e,
-                             'name': 'cluster {}'.format(e),
-                             'description': '',
-                             'elements': [],
-                         } for e in range(max(labels)+1)]
+        self.clusters[cluster_name] = [
+            cluster.Cluster(
+                idx=idx,
+                name='cluster {}'.format(idx),
+                description='',
+                center=center.tolist()
+            ) for idx, center in enumerate(centers)
+        ]
         for idx, label in enumerate(labels):
-            self.clusters[cluster_name][label]['elements'].append(idx)
+            self.clusters[cluster_name][label].elements.append(idx)
 
     def get_labels(self):
         labels = [0 for i in range(len(self.get_times()))]
         for cluster in self.get_clusters():
-            for idx in cluster['elements']:
-                labels[idx] = cluster['id']
+            for idx in cluster.elements:
+                labels[idx] = cluster.id
 
         return labels
 
@@ -199,10 +201,10 @@ class Project:
     def update_tests(self, tests):
         new_tests = []
         for testname in tests:
-            file_md5 = test_f.md5(testname)
+            file_md5 = testf.md5(testname)
 
             if testname not in self.tests:
-                test = test_f.Test(name=testname, id=self.get_count_tests(), file_md5=file_md5)
+                test = testf.Test(name=testname, id=self.get_count_tests(), file_md5=file_md5)
                 self.tests[testname] = test
                 self.is_changed = True
                 new_tests.append(test)
@@ -249,6 +251,7 @@ class Project:
         file = open(self.output, 'w')
         file.seek(0)
         file.truncate()
+        obj = {key: [c.dump() for c in self.clusters[key]] for key in self.clusters.keys()}
         json.dump({
             'name': self.name,
             'is_tl_hidden': self.is_tl_hidden,
@@ -257,7 +260,7 @@ class Project:
             'cluster_size': self.cluster_size,
             'tests': [t.dump() for t in self.tests.values()],
             'solutions': [s.dump() for s in self.all_solutions.values()],
-            'clusters': self.clusters,
+            'clusters': {key: [c.dump() for c in self.clusters[key]] for key in self.clusters.keys()},
         }, file, sort_keys=True, indent=4)
         file.flush()
         file.close()

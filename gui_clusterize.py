@@ -207,7 +207,6 @@ class ClusterizePage(tk.Frame):
         canvas._tkcanvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def clusterize(self, count):
-        print("clusterize!!!!")
         self.main.data.clusterize(count)
         self.redraw_plot()
 
@@ -242,7 +241,6 @@ class ClusterizePage(tk.Frame):
         self.draw_space()
 
     def on_solution_selected_fake(self):
-        print('on_solution_selected_fake')
         self.after(200, lambda: self.is_solo_click())
 
     def is_solo_click(self):
@@ -250,7 +248,6 @@ class ClusterizePage(tk.Frame):
             self.on_solution_selected()
 
     def on_solution_selected(self):
-        print('on_solution_selected', len(self.clusters.curselection()))
         if len(self.clusters.curselection()) == 0:
             return
 
@@ -267,12 +264,12 @@ class ClusterizePage(tk.Frame):
     @staticmethod
     def get_cluster_name(cluster):
         def get_special_symbol(cluster):
-            if cluster['description'] == '' and cluster['name'] == 'cluster {}'.format(cluster['id']):
+            if cluster.description == '' and cluster.name == 'cluster {}'.format(cluster.id):
                 return '○'
             else:
                 return '✓'
 
-        return '{} {} ({})'.format(get_special_symbol(cluster), cluster['name'], len(cluster['elements']))
+        return '{} {} ({})'.format(get_special_symbol(cluster), cluster.name, len(cluster.elements))
 
     def fill_clusters(self):
         print("fill", self.clusters.size())
@@ -287,7 +284,6 @@ class ClusterizePage(tk.Frame):
         self.cluster_views[idx] = None
 
     def on_solution_clicked(self):
-        print('on_solution_clicked')
         self.doubleClickTime = time.clock()
         if len(self.clusters.curselection()) == 0:
             return

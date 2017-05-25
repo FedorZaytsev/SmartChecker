@@ -112,7 +112,7 @@ def kmean(data, count):
     data = data.get_times()
     X = preprocess(data)
     km.fit(X)
-    return km.labels_
+    return km.labels_, km.cluster_centers_
 
 
 def affinity_propogation(data, **kwargs):
