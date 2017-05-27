@@ -1,4 +1,4 @@
-
+import json
 
 class Cluster:
     def __init__(self, obj=None, idx=None, name=None, description=None, center=None):
@@ -23,4 +23,10 @@ class Cluster:
             'elements': self.elements,
             'center': self.center,
         }
+
+    def __str__(self):
+        return json.dumps(self.dump(), sort_keys=True, indent=4)
+
+    def __repr__(self):
+        return json.dumps(self.dump(), sort_keys=True, indent=4)
 

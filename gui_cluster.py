@@ -101,7 +101,7 @@ class ClusterWindow(tk.Toplevel):
 
         def on_copy():
             idx = self.solutions.curselection()[0]
-            text = self.data[idx]['name']['file']
+            text = self.data[idx].filepath
             _, text = os.path.split(text)
             self.clipboard_clear()
             self.clipboard_append(text)

@@ -30,8 +30,6 @@ def check_settings():
             print("Config doesn't exists. Creating default config file")
             ini.write(default_config())
 
-
-print("Loading setting")
 check_settings()
 config = configparser.ConfigParser()
 config.read('./config.ini')

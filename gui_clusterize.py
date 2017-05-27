@@ -115,8 +115,8 @@ class ClusterizePage(tk.Frame):
         if self.clusters.curselection()[0] == 0:
             if messagebox.askyesno(title='Are you sure?', message='Are you sure to clear all cluster information?'):
                 for cluster in self.main.data.get_clusters():
-                    cluster['name'] = 'cluster {}'.format(cluster['id'])
-                    cluster['description'] = ''
+                    cluster.name = 'cluster {}'.format(cluster.id)
+                    cluster.description = ''
                 self.fill_clusters()
         else:
             self.on_solution_clicked()
