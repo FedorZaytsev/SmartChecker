@@ -1,13 +1,11 @@
-import math
 import colorsys
 import numpy as np
 import sklearn.cluster as cluster
 import scipy.spatial as spatial
 from sklearn import preprocessing
 from sklearn.manifold import TSNE
-import pyclustering.cluster.xmeans as pyxmeans
-import pyclustering.cluster.kmeans as pykmeans
-import fetch
+#import pyclustering.cluster.xmeans as pyxmeans
+#import pyclustering.cluster.kmeans as pykmeans
 
 
 def generate_colors(N):
