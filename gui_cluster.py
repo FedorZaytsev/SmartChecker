@@ -43,6 +43,8 @@ class ClusterWindow(tk.Toplevel):
 
     def init_controls(self):
         def updateName(val):
+            if self.cluster_info.name == val:
+                return True
             self.title(val)
             self.cluster_info.name = val
             self.project.is_changed = True
@@ -52,6 +54,8 @@ class ClusterWindow(tk.Toplevel):
             return True
 
         def updateDescription(val):
+            if self.cluster_info.description == val:
+                return True
             self.cluster_info.description = val
             self.project.is_changed = True
             self.main.clusters.insert(self.idx+1, gui_clusterize.ClusterizePage.get_cluster_name(self.cluster_info))
@@ -85,6 +89,23 @@ class ClusterWindow(tk.Toplevel):
                                      validatecommand=(self.register(updateDescription), '%P'))
         desc_input.insert(tk.END, self.cluster_info.description)
         desc_input.grid(row=1, column=1)
+
+        #frt = tk.Frame(fr1,  highlightthickness=20, highlightcolor="#9DCDFF", bg='#9DCDFF')
+        #TextArea = tk.Text(frt, highlightbackground='red', highlightthickness=1,
+        #                   highlightcolor='green')
+        #TextArea.pack()
+        #RAISED='raised'
+        #SUNKEN='sunken'
+        #FLAT='flat'
+        #RIDGE='ridge'
+        #GROOVE='groove'
+        #SOLID = 'solid'
+        #ScrollBar = tk.Scrollbar(fr1)
+        #ScrollBar.config(command=TextArea.yview)
+        #TextArea.config(yscrollcommand=ScrollBar.set)
+        #ScrollBar.pack(side=tk.RIGHT, fill=tk.Y)
+        #TextArea.grid(row=1, column=1, padx=(10, 10), pady=(10, 10))#.pack(expand=tk.YES, fill=tk.BOTH)
+        #frt.grid(row=1, column=1, padx=(10, 10), pady=(10, 10))
 
         self.solutions = ListboxEx.ListboxEx(fr1, height=15)
         self.solutions.grid(row=2, column=0, columnspan=2, sticky='nsew')
