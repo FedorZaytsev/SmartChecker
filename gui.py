@@ -45,6 +45,8 @@ class Window:
 
     def init_controls(self):
         self.root = tk.Tk()
+        self.root.lift()
+        self.root.focus_force()
         self.root.geometry("800x500")
         self.root.title("Smart checker")
         self.root.resizable(True, True)
