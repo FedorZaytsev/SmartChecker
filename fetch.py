@@ -60,7 +60,7 @@ def get_tests(testsfolder):
     return sorted(lst, key=lambda x: int(os.path.basename(x)))
 
 
-def call_process(cmd, timeout=10, input='/dev/null', output=False, error=False):
+def call_process(cmd, timeout=10, input='/dev/null', output=False, error=False, checkRC=False):
     assert cmd != ''
 
     curr = os.getcwd()
@@ -83,9 +83,8 @@ def call_process(cmd, timeout=10, input='/dev/null', output=False, error=False):
         with open(filename, 'r', errors='ignore') as f:
             return f.read()
 
-    #because fuck you, thats why
-    #if return_code != 0:
-    #    raise subprocess.CalledProcessError(return_code, command, output=get_data(stdout),stderr=get_data(stderr))
+    if checkRC and return_code != 0:
+        raise subprocess.CalledProcessError(return_code, command, output=get_data(stdout),stderr=get_data(stderr))
 
     if output and error:
         return get_data(stdout) and get_data(stderr)
@@ -106,7 +105,7 @@ def compile_source(file, output_path):
 
     output = ''
     try:
-        output = call_process(cmd=cmd, timeout=30, output=True)
+        output = call_process(cmd=cmd, timeout=30, output=True, checkRC=True)
         #rc = os.system(cmd)
         #if rc != 0:
         #    raise subprocess.CalledProcessError(rc, cmd)
