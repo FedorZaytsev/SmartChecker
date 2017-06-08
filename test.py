@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 
 def md5(fname):
@@ -29,3 +30,6 @@ class Test:
             'id': self.id,
             'md5': self.md5,
         }
+
+    def __repr__(self):
+        return json.dumps(self.dump(), indent=2, sort_keys=True)
