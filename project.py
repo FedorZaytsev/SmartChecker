@@ -5,7 +5,7 @@ import numpy as np
 import solution
 import fetch
 import os
-import test as testf
+import test_p as testf
 import cluster
 
 
