@@ -67,7 +67,7 @@ def call_process(cmd, timeout=10, input='/dev/null', output=False, error=False, 
     stdout = os.path.join(curr, 'stdout')
     stderr = os.path.join(curr, 'stderr')
 
-    command = '{} {} {} < {} 1>"{}" 2>"{}"'.format(config['tests']['timeout_prog'], timeout, cmd, input, stdout,
+    command = '{} {} {} < "{}" 1>"{}" 2>"{}"'.format(config['tests']['timeout_prog'], timeout, cmd, input, stdout,
                                                    stderr)
 
     #print('call_process', command)
