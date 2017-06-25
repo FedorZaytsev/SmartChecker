@@ -103,15 +103,14 @@ def compile_source(file, output_path):
     #command = [opts['name'], *params, '-o', output_path, file['file']]
     #print('compiling', command)
 
-    output = ''
     try:
-        output = call_process(cmd=cmd, timeout=30, output=True, checkRC=True)
+        call_process(cmd=cmd, timeout=30, checkRC=True)
         #rc = os.system(cmd)
         #if rc != 0:
         #    raise subprocess.CalledProcessError(rc, cmd)
     except subprocess.CalledProcessError as error:
         print("Cannot compile program with name {}".format(file['file']))
-        print("Reason:\n{}".format(output))
+        print("Reason:\n{}".format(error.stderr))
         raise error
     except subprocess.TimeoutExpired as error:
         print("Timeout expired while compiled program with name", file['name'])
